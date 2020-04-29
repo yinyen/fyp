@@ -12,7 +12,7 @@ from tensorflow.keras.applications.xception import Xception
 def xception_custom(NUM_CLASS, IMG_HEIGHT, IMG_WIDTH):
     print("XCEPTION")
     cnn = Xception(include_top = False, weights = None, 
-                      input_shape = (IMG_WIDTH, IMG_HEIGHT, 3), pooling = None)
+                      input_shape = (IMG_WIDTH, IMG_HEIGHT, 3), pooling = 'max')
 
     model = Sequential()
     model.add(cnn)

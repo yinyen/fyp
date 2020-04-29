@@ -3,3 +3,6 @@ https://towardsdatascience.com/tensorflow-gpu-installation-made-easy-use-conda-i
 
 
 conda create --name tf_gpu tensorflow-gpu 
+
+conda install pandas numpy scikit-learn 
+pip install Pillow

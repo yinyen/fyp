@@ -18,9 +18,13 @@ EPOCH = 6
 lr = 0.0001
 NUM_CLASS=5
 IMG_HEIGHT, IMG_WIDTH = 200,200
+full_eval_image_generator = create_image_generator_for_evaluation("../all_train", IMG_WIDTH, IMG_HEIGHT, 128)
 
-model = small_vgg16(NUM_CLASS=NUM_CLASS, IMG_HEIGHT = IMG_HEIGHT, IMG_WIDTH = IMG_WIDTH)
-model = initialize_model(model, lr = lr)
+full_eval_image_generator
+
+
+# model = small_vgg16(NUM_CLASS=NUM_CLASS, IMG_HEIGHT = IMG_HEIGHT, IMG_WIDTH = IMG_WIDTH)
+# model = initialize_model(model, lr = lr)
 # callback_list = initialize_callbacks(checkpoint_dir)
 # class_weights = get_class_weight(image_generator)
 # print("CLASS WEIGHT:", class_weights)
