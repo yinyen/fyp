@@ -6,40 +6,24 @@ import glob
 import tensorflow as tf
 
 import shutil
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense, Flatten
-from tensorflow.keras.layers import Subtract, Concatenate, Dot
-from tensorflow.keras.applications.xception import Xception
-from sklearn.utils import class_weight
 
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D
-from tensorflow.keras.layers import Activation, Dropout, Flatten, Dense
+from sklearn.utils import class_weight
 
 from kappa import quadratic_kappa
 
-label_df = pd.read_csv("trainLabels.csv")
+# label_df = pd.read_csv("trainLabels.csv")
 
-label_df["f"] = [j.split("_")[0] for j in label_df["image"]]
-label_df["side"] = [j.split("_")[1] for j in label_df["image"]]
+# label_df["f"] = [j.split("_")[0] for j in label_df["image"]]
+# label_df["side"] = [j.split("_")[1] for j in label_df["image"]]
 
-g = label_df.groupby("f")["level"].count()
-y = label_df.groupby("level").count()
-print(y)
+# g = label_df.groupby("f")["level"].count()
+# y = label_df.groupby("level").count()
+# print(y)
 
-def load_img(img_file, IMG_HEIGHT = 200, IMG_WIDTH = 200):
-    img = tf.keras.preprocessing.image.load_img(img_file, target_size=(IMG_HEIGHT, IMG_WIDTH))
-    img = tf.keras.preprocessing.image.img_to_array(img)
-    return img / 255.0
 
-def euclidean_distance(x, y):
-    dist = np.linalg.norm(x-y)
-    return dist
 
-def get_label_from_filename(filename, label_df):
-    clean_filename = os.path.basename(filename).split(".")[0]
-    return label_df.loc[label_df["image"] == clean_filename]["level"].values[0]
+
+
 
 IMG_WIDTH = 100
 IMG_HEIGHT = 100
@@ -158,17 +142,6 @@ def tiny_vgg16(NUM_CLASS, IMG_HEIGHT = 100, IMG_WIDTH = 100):
 
     return my_model
 
-def xception_custom(NUM_CLASS, IMG_HEIGHT, IMG_WIDTH):
-    print("XCEPTION")
-    cnn = Xception(include_top = False, weights = None, 
-                      input_shape = (IMG_WIDTH, IMG_HEIGHT, 3), pooling = None)
-
-    model = Sequential()
-    model.add(cnn)
-    model.add(Dense(units = 256, activation='relu'))
-    model.add(Dense(units = 64, activation = 'relu'))
-    model.add(Dense(units = NUM_CLASS, activation='relu'))
-    return model
 
 
 model = tiny_vgg16(NUM_CLASS = unique_label)
