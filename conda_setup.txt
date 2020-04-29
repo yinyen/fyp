@@ -1,0 +1,5 @@
+
+https://towardsdatascience.com/tensorflow-gpu-installation-made-easy-use-conda-instead-of-pip-52e5249374bc?gi=77abfa9dc5e7
+
+
+conda create --name tf_gpu tensorflow-gpu 
