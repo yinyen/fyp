@@ -1,6 +1,8 @@
 import os
 import tensorflow as tf
 import pandas as pd
+import numpy as np
+from pathos.multiprocessing import ProcessingPool as Pool
 
 def load_label(label_file = "trainLabels.csv"):
     label_df = pd.read_csv("trainLabels.csv")
@@ -14,6 +16,11 @@ def load_img(img_file, IMG_HEIGHT = 200, IMG_WIDTH = 200):
     img = tf.keras.preprocessing.image.img_to_array(img)
     return img / 255.0
 
+def load_img_fast(filenames, worker = 4):
+    p = Pool(worker)
+    imgs = p.map(load_img, filenames)
+    imgs = np.array(imgs)
+    return imgs
 
 def get_label_from_filename(filename, label_df):
     clean_filename = os.path.basename(filename).split(".")[0]

@@ -10,18 +10,22 @@ def create_phase_2_dir(name, iteration):
     ITERATION_STR = str(ITERATION).zfill(2)
     PHASE_2_TRAIN_DIR = "Train"
     PHASE_2_CHECKPOINT_DIR = "Checkpoint"
+    PHASE_2_OUTPUT_DIST_DIR = "Cluster"
 
     os.makedirs(PHASE_2, exist_ok=False)
     os.makedirs(f'{PHASE_2}/{ITERATION_STR}')
     os.makedirs(f'{PHASE_2}/{ITERATION_STR}/{PHASE_2_TRAIN_DIR}')
     os.makedirs(f'{PHASE_2}/{ITERATION_STR}/{PHASE_2_CHECKPOINT_DIR}')
+    os.makedirs(f'{PHASE_2}/{ITERATION_STR}/{PHASE_2_OUTPUT_DIST_DIR}')
     for label in [0,1,2,3,4]:
         label = str(label)
         os.makedirs(f'{PHASE_2}/{ITERATION_STR}/{PHASE_2_TRAIN_DIR}/{label}', exist_ok=False)
 
+    output_dir = f'{PHASE_2}/{ITERATION_STR}' 
     train_dir = f'{PHASE_2}/{ITERATION_STR}/{PHASE_2_TRAIN_DIR}'
     checkpoint_dir = f'{PHASE_2}/{ITERATION_STR}/{PHASE_2_CHECKPOINT_DIR}'
-    return train_dir, checkpoint_dir
+    output_dist_dir = f'{PHASE_2}/{ITERATION_STR}/{PHASE_2_OUTPUT_DIST_DIR}'
+    return output_dir, train_dir, checkpoint_dir, output_dist_dir
 
 def copy_images_to_train_dir(train_dir, training_set):
     for img, label in zip(training_set["img_file"], training_set["label"]):
