@@ -26,8 +26,8 @@ def do_phase_1(TRAIN_DIR, INITIAL_SAMPLE, IMG_HEIGHT, IMG_WIDTH):
     return training_set, label_df, all_filenames
 
 
-def do_phase_2(PHASE_2, ITERATION, training_set, label_df, EVERY_SAMPLE,
-                NUM_CLASS, IMG_WIDTH, IMG_HEIGHT, BATCH_SIZE, lr, EPOCH):
+def do_phase_2(PHASE_2, ITERATION, training_set, label_df, all_filenames, EVERY_SAMPLE,
+                NUM_CLASS, IMG_WIDTH, IMG_HEIGHT, BATCH_SIZE, lr, EPOCH, LIMIT = None):
     # import shutil
     # try:
     #     shutil.rmtree(PHASE_2)
@@ -76,7 +76,7 @@ def do_phase_2(PHASE_2, ITERATION, training_set, label_df, EVERY_SAMPLE,
     full_dist_df = predict_and_compute_distance_in_batch(fmodel, all_filenames=all_filenames, 
                                                             centroid_dict=updated_centroid_dict, 
                                                             output_folder=output_dist_dir,
-                                                            LIMIT = 1000)
+                                                            LIMIT = LIMIT)
     full_dist_df["base_img"] = full_dist_df["img_file"].apply(lambda x: os.path.basename(x))
 
     new_training_set = construct_new_training_set(training_set, full_dist_df, label_df = label_df, remove_top = 0.02, EVERY_SAMPLE = EVERY_SAMPLE)
