@@ -7,6 +7,7 @@ def quadratic_kappa(actuals, preds, N=5):
     of adoption rating."""
     w = np.zeros((N,N))
     O = confusion_matrix(actuals, preds)
+    print(O)
     for i in range(len(w)): 
         for j in range(len(w)):
             w[i][j] = float(((i-j)**2)/(N-1)**2)
@@ -31,10 +32,10 @@ def quadratic_kappa(actuals, preds, N=5):
             den+=w[i][j]*E[i][j]
     return (1 - (num/den))
 
-a = [1,0,0,1,2,3,4,4,4,4]
-b = [1,0,0,1,2,3,4,2,4,4]
-b = np.array([[0,0,1],[0,1,0]])
-print(b)
-print(b.argmax(axis = 1))
-# x = quadratic_kappa(a,b)
-# print(x)
+a = [0]*20 + [1]*5 + [2]*7 + [3]*3 + [4]
+b = [0]*19 + [0] + [1]*4 + [1] + [2]*6 + [2] + [3]*2 + [3] + [2]
+# b = np.array([[0,0,1],[0,1,0]])
+# print(b)
+# print(b.argmax(axis = 1))
+x = quadratic_kappa(a,b)
+print(x)
