@@ -1,4 +1,5 @@
 import os
+import glob
 import tensorflow as tf
 import pandas as pd
 import numpy as np
@@ -21,6 +22,14 @@ def load_img_fast(filenames, worker = 4):
     imgs = p.map(load_img, filenames)
     imgs = np.array(imgs)
     return imgs
+
+def get_all_filenames(img_train_dir):
+    all_filenames = glob.glob(f"{img_train_dir}/*/*.jpeg")
+    return all_filenames
+
+def get_all_test_filenames(img_train_dir):
+    all_filenames = glob.glob(f"{img_train_dir}/*.jpeg")
+    return all_filenames
 
 def get_label_from_filename(filename, label_df):
     clean_filename = os.path.basename(filename).split(".")[0]
