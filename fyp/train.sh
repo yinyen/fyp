@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=0 python train_torch_yaml.py --config yaml_config/xception.yaml

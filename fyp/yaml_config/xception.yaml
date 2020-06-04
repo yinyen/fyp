@@ -1,0 +1,27 @@
+train_name: resnet18_d400_v1
+# main_data_dir: ../resize_train
+main_data_dir: ../all_train
+main_model_dir: torch_models
+workers: 12
+
+size: 400
+
+model_type: resnet18
+metric_type: softmax
+num_ftr: 1000
+num_classes: 5
+batch_size: 32
+epochs: 1000
+optimizer_type: AdamW
+opt_kwargs:
+  lr: 0.001
+  weight_decay: 0.025
+model_kwargs:
+  pretrained: True
+scheduler_type: CosineAnnealingLR
+scheduler_kwargs:
+  T_max: 1000
+  eta_min: 0.00001
+
+# https://www.fast.ai/2018/07/02/adam-weight-decay/#implementing-adamw
+# adamw with onecycle

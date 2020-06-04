@@ -5,3 +5,4 @@ diabetic-reti*
 *.jpeg
 *.pyc
 .vscode/settings.json
+fyp/torch_models/*

@@ -1,0 +1,21 @@
+train_name: resnet34
+main_data_dir: data3
+main_model_dir: torch_models
+model_type: resnet34
+metric_type: adacos
+num_ftr: 1000
+num_classes: 7 
+batch_size: 64
+epochs: 3000
+optimizer_type: SGD
+opt_kwargs:
+  lr: 0.1
+  momentum: 0.95
+  weight_decay: 0.0001
+scheduler_type: CosineAnnealingWarmRestarts
+scheduler_kwargs:
+  T_0: 10
+  T_mult: 2
+  eta_min: 0
+  last_epoch: -1
+
