@@ -12,7 +12,7 @@ def phase_1(INITIAL_SAMPLE, TRAIN_DIR, IMG_HEIGHT, IMG_WIDTH, label_df, LIMIT_DE
 
     unique_label = 0
     training_set = pd.DataFrame()
-    while unique_label < 3:
+    while unique_label < 5:
         # 1. Sample 17 images
         x = np.random.choice(img_files, size=INITIAL_SAMPLE, replace = False).tolist()
         img_files = [j for j in img_files if j not in x]
@@ -23,7 +23,7 @@ def phase_1(INITIAL_SAMPLE, TRAIN_DIR, IMG_HEIGHT, IMG_WIDTH, label_df, LIMIT_DE
         # 2. Calculate number of unique labels
         unique_label = len(training_set.label.unique())
         print("Unique:", unique_label)
-        if unique_label < 3:
+        if unique_label < 5:
             print("Repeat sampling!", unique_label)
         
     return training_set, unique_label    
