@@ -20,4 +20,5 @@ def get_cm(true, pred):
     
 def avg_acc(true, pred):
     cm = confusion_matrix(true, pred, normalize='true')
-    return sum([cm[i,i] for i in range(5)])/5
+    n = cm.shape[0]
+    return sum([cm[i,i] for i in range(n)])/n
