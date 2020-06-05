@@ -59,12 +59,31 @@ def asm2(A):
 def my_loss(output, target):
     k1, k2 = 5,3
     # k1,k2 = 2,1
+    
+    # raise Exception()
+    eps = 1e-10
+    b = asm2(output)
+    loss1 = (b-target+eps).pow(2).pow(0.5)
+    loss1 = loss1.type(torch.float32)
+    loss2 = (5-b).pow(2).pow(0.5/k1)
+    loss3 = (1+100*target).pow(2).pow(0.5/k2)
+    # loss_agg = loss1*loss2*loss3
+    loss_agg = loss1
+    loss = torch.mean(loss_agg)
+
+    # print("PRED")
+    # print(torch.argmax(output, dim = 1))
+    # print("LOSS")
+    # print(loss_agg)
+    # print(loss)
+    # loss = torch.mean(loss1)
+
+    return loss
+
+    
+def my_loss_mse(output, target):
     b = asm2(output)
     loss1 = (b-target).pow(2)
     loss1 = loss1.type(torch.float32)
-    loss2 = (5-b).pow(2).pow(0.5/k1)
-    loss3 = (1+target).pow(2).pow(0.5/k2)
-    # loss = torch.mean(loss1*loss2*loss3)
     loss = torch.mean(loss1)
-
     return loss
