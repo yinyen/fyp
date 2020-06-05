@@ -23,33 +23,35 @@ from pytorch.mnist import archs
 import pytorch.metrics as metrics
 from pytorch.coslr import CosineAnnealingWarmUpRestarts
 from evaluate.metrics import avg_acc
+from sklearn import metrics
 
 
-def training_iterate(loader_data, model, metric_fc, criterion, losses, acc1s, metric):
-    y_pred = []
-    y_true = []
-    for i, (input, target) in tqdm(enumerate(loader_data), total=len(loader_data)):
-        input = input.cuda()
-        target = target.long().cuda() 
+# DEPRECATED
+# def training_iterate(loader_data, model, metric_fc, criterion, losses, acc1s, metric):
+#     y_pred = []
+#     y_true = []
+#     for i, (input, target) in tqdm(enumerate(loader_data), total=len(loader_data)):
+#         input = input.cuda()
+#         target = target.long().cuda() 
 
-        feature = model(input)
-        if metric == 'softmax':
-            output = metric_fc(feature)
-        else:
-            output = metric_fc(feature, target)
-        loss = criterion(output, target)
+#         feature = model(input)
+#         if metric == 'softmax':
+#             output = metric_fc(feature)
+#         else:
+#             output = metric_fc(feature, target)
+#         loss = criterion(output, target)
 
-        acc1, = torch_accuracy(output, target, topk=(1,))
-        losses.update(loss.item(), input.size(0))
-        acc1s.update(acc1.item(), input.size(0))
+#         acc1, = torch_accuracy(output, target, topk=(1,))
+#         losses.update(loss.item(), input.size(0))
+#         acc1s.update(acc1.item(), input.size(0))
         
-        y_pred += output.argmax(axis = 1).tolist()
-        y_true += target.tolist()
-    y_true = np.array(y_true)
-    y_pred = np.array(y_pred)
-    avg_acc_val = avg_acc(y_true, y_pred)   
-    qk = quadratic_kappa(y_true, y_pred)
-    return loss, qk #avg_acc_val
+#         y_pred += output.argmax(axis = 1).tolist()
+#         y_true += target.tolist()
+#     y_true = np.array(y_true)
+#     y_pred = np.array(y_pred)
+#     avg_acc_val = avg_acc(y_true, y_pred)   
+#     qk = quadratic_kappa(y_true, y_pred)
+#     return loss, qk #avg_acc_val
 
 
 def logging(loss_avg, acc1_avg, avg_acc_val):
@@ -61,7 +63,7 @@ def logging(loss_avg, acc1_avg, avg_acc_val):
     return log
 
 
-def train(train_loader, model, metric_fc, criterion, optimizer, metric = "not_softmax"):
+def train(loader_data, model, metric_fc, criterion, optimizer, metric = "not_softmax", batch_multiplier = 1):
     losses = AverageMeter()
     acc1s = AverageMeter()
 
@@ -70,18 +72,52 @@ def train(train_loader, model, metric_fc, criterion, optimizer, metric = "not_so
     metric_fc.train()
 
     # training
-    loss, avg_acc_val = training_iterate(train_loader, model, metric_fc, criterion, losses, acc1s, metric)
-    # compute gradient and do optimizing step
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
+    # loss, avg_acc_val = training_iterate(train_loader, model, metric_fc, criterion, losses, acc1s, metric)
+    y_pred = []
+    y_true = []
+    count = 0
+    for i, (input, target) in tqdm(enumerate(loader_data), total=len(loader_data)):
+        if count == 0:
+            optimizer.step() # update cnn weights
+            optimizer.zero_grad()
+            count = batch_multiplier
 
+        input, target = input.cuda(), target.long().cuda() 
+        feature = model(input)
+        if metric == 'softmax':
+            output = metric_fc(feature)
+        else:
+            output = metric_fc(feature, target)
+
+        loss = criterion(output, target)
+        loss = loss / batch_multiplier
+        loss.backward() # cumulate the loss 
+        count -= 1
+
+        # compute acc on the fly
+        acc1, = torch_accuracy(output, target, topk=(1,))
+        losses.update(loss.item(), input.size(0))
+        acc1s.update(acc1.item(), input.size(0))
+        
+        # record predicted
+        y_pred += output.argmax(axis = 1).tolist()
+        y_true += target.tolist()
+
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+
+    # calculate metrics using standard sklearn metrics
+    # avg_acc_val = avg_acc(y_true, y_pred)   
+    accuracy_val = metrics.accuracy_score(y_true, y_pred)
+    qk = quadratic_kappa(y_true, y_pred)
+    
     # log performance metrics
-    log = logging(losses.avg, acc1s.avg, avg_acc_val)
+    log = logging(losses.avg, acc1s.avg, qk)
     return log
 
 
-def validate(val_loader, model, metric_fc, criterion, metric = "not_softmax"):
+def validate(loader_data, model, metric_fc, criterion, metric = "not_softmax"):
+
     losses = AverageMeter()
     acc1s = AverageMeter()
 
@@ -90,10 +126,34 @@ def validate(val_loader, model, metric_fc, criterion, metric = "not_softmax"):
     metric_fc.eval()
 
     with torch.no_grad():
-        loss, avg_acc_val = training_iterate(val_loader, model, metric_fc, criterion, losses, acc1s, metric)
+        y_pred = []
+        y_true = []
+        for i, (input, target) in tqdm(enumerate(loader_data), total=len(loader_data)):
+            input = input.cuda()
+            target = target.long().cuda() 
+
+            feature = model(input)
+            if metric == 'softmax':
+                output = metric_fc(feature)
+            else:
+                output = metric_fc(feature, target)
+            loss = criterion(output, target)
+
+            acc1, = torch_accuracy(output, target, topk=(1,))
+            losses.update(loss.item(), input.size(0))
+            acc1s.update(acc1.item(), input.size(0))
+
+            y_pred += output.argmax(axis = 1).tolist()
+            y_true += target.tolist()
+            
+        y_true = np.array(y_true)
+        y_pred = np.array(y_pred)
+        # avg_acc_val = avg_acc(y_true, y_pred)   
+        qk = quadratic_kappa(y_true, y_pred)
+        # loss, avg_acc_val = training_iterate(val_loader, model, metric_fc, criterion, losses, acc1s, metric)
     
     # log performance metrics
-    log = logging(losses.avg, acc1s.avg, avg_acc_val)
+    log = logging(losses.avg, acc1s.avg, qk)
     return log
 
 

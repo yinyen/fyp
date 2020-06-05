@@ -6,3 +6,5 @@ diabetic-reti*
 *.pyc
 .vscode/settings.json
 fyp/torch_models/*
+.ipynb_checkpoints/z_fix_sample-checkpoint.ipynb
+fyp/.ipynb_checkpoints/eval_torch-checkpoint.ipynb

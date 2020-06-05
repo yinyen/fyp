@@ -1,21 +1,33 @@
-train_name: resnet18_d400_v1
+train_name: xception_d400_v1
 # main_data_dir: ../resize_train
-main_data_dir: ../all_train
+main_data_dir: ../all_train_300
+use_train_dir: full_train
 main_model_dir: torch_models
-workers: 12
-
+workers: 14
 size: 400
+batch_size: 8
+batch_multiplier: 8
+fix_sample: 10000
+fix_sample_val: -1
+epochs: 1000
 
-model_type: resnet18
-metric_type: softmax
+# loss_type: cross_entropy
+loss_type: cross_entropy
+model_type: xception
+metric_type: adacos
 num_ftr: 1000
 num_classes: 5
-batch_size: 32
-epochs: 1000
+
 optimizer_type: AdamW
 opt_kwargs:
-  lr: 0.001
-  weight_decay: 0.025
+  lr: 0.0005
+  weight_decay: 0.0025
+# optimizer_type: SGD
+# opt_kwargs:
+#   lr: 0.0001
+#   momentum: 0.5
+#   weight_decay: 0.025
+
 model_kwargs:
   pretrained: True
 scheduler_type: CosineAnnealingLR
