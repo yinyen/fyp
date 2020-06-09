@@ -76,6 +76,8 @@ def train(loader_data, model, metric_fc, criterion, optimizer, metric = "not_sof
     y_pred = []
     y_true = []
     count = 0
+    initial_loss = 0
+    last_loss = 0
     for i, (input, target) in tqdm(enumerate(loader_data), total=len(loader_data)):
         if count == 0:
             optimizer.step() # update cnn weights
@@ -90,6 +92,11 @@ def train(loader_data, model, metric_fc, criterion, optimizer, metric = "not_sof
             output = metric_fc(feature, target)
 
         loss = criterion(output, target)
+        if i == 0:
+            initial_loss = loss.item()
+        else: 
+            last_loss = loss.item()
+        
         loss = loss / batch_multiplier
         loss.backward() # cumulate the loss 
         count -= 1
@@ -102,6 +109,10 @@ def train(loader_data, model, metric_fc, criterion, optimizer, metric = "not_sof
         # record predicted
         y_pred += output.argmax(axis = 1).tolist()
         y_true += target.tolist()
+
+    print("loss_0: ", initial_loss, "loss_n:", last_loss)
+    # optimizer.step() # update cnn weights
+    optimizer.zero_grad()
 
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
