@@ -31,6 +31,8 @@ def select_model(model_type, model_kwargs):
         model = models.vgg16_bn(pretrained=pretrained) 
     elif model_type == "xception":
         model = xception() 
+    elif model_type == "vgg11":
+        model = models.vgg11_bn(pretrained=pretrained) 
         
     model = model.cuda()
     return model
@@ -45,6 +47,8 @@ def select_metric(metric, num_ftr, num_classes=7):
         metric_fc = metrics.SphereFace(num_features=num_ftr, num_classes=num_classes)
     elif metric == 'cosface':
         metric_fc = metrics.CosFace(num_features=num_ftr, num_classes=num_classes)
+    elif metric == 'softmax':
+        metric_fc = nn.Linear(num_ftr, num_classes)
     else:
         metric_fc = nn.Linear(num_ftr, num_classes)
     metric_fc = metric_fc.cuda()
