@@ -36,7 +36,7 @@ class ActiveLearning():
 
         # phase 1: Formation of initial cluster
         model, metric_fc = self.train(current_step_dir, label_df, val_df, None, None, **self.config)
-        centroid = self.extract_features_and_form_initial_clusters(model, label_df, **config)
+        centroid = self.extract_features_and_form_clusters(model, label_df, **config)
 
         # phase 2: active learning
         while current_step < 3:
@@ -48,28 +48,22 @@ class ActiveLearning():
                 model, metric_fc = self.train(current_step_dir, label_df, label_df, model, metric_fc, **self.config) # currently only train and validate on label_df
 
                 # extract features and update clusters
-                # centroid = self.extract_features_and_update_clusters(model, label_df, **config)
-
-            print("pre-added:", label_df.shape)
-            print("pre-added:", unlabel_df.shape)
+                centroid = self.extract_features_and_form_clusters(model, label_df, **config)
 
             # compute unfamiliarity index and remove selected n samples from unlabelled
             val_df, unlabel_df = self.extract_features_and_compute_index(model, unlabel_df, centroid, **self.config)
             
             # add selected n samples to labelled
             label_df = label_df.append(val_df)
-            print("added:", label_df.shape)
-            print("added:", unlabel_df.shape)
         
             # evaluate model on selected n samples
-            # metrics = self.evaluate(model, metric_fc, val_df)
+            result_df = self.evaluate(model, metric_fc, val_df, **self.config)
 
             # dump results
-            # dump label_df, val_df, unlabel_df
+            # dump label_df, val_df, unlabel_df and dump centroid
             self.dump_df(current_step_dir, label_df, val_df, unlabel_df)
-           
+            self.dump_centroid(current_step_dir, centroid)
             # dump evaluation metrics
-            result_df = self.evaluate(model, metric_fc, val_df, **self.config)
             self.dump_step_result(current_step_dir, result_df)
 
             # repeat
@@ -109,7 +103,7 @@ class ActiveLearning():
         val_df = label_df.copy()
         return label_df, val_df, unlabel_df
 
-    def extract_features_and_form_initial_clusters(self, model, label_df, size, workers, **kwargs):
+    def extract_features_and_form_clusters(self, model, label_df, size, workers, **kwargs):
         data_loader = create_data_loader(label_df, size, batch_size = 6, workers = workers)
         f, y = extract_features(model, data_loader)
         label_df["features"] = [j for j in f]
@@ -166,6 +160,10 @@ class ActiveLearning():
         label_df.to_csv(f"{current_step_dir}/label_df.csv")
         val_df.to_csv(f"{current_step_dir}/selected_df.csv")
         unlabel_df.to_csv(f"{current_step_dir}/unlabel_df.csv")
+
+    def dump_centroid(self, current_step_dir, centroid):
+        with open(f'{current_step_dir}/centroid.json', 'w') as outfile:
+            json.dump(centroid, outfile)
 
     def dump_step_result(self, current_step_dir, result_df):
         if self.result_df is None:

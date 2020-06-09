@@ -8,7 +8,7 @@ main_data_dir: ../all_train_300
 
 # active learning parameters
 m: 50
-n: 20
+n: 25
 
 # to vary:
 
