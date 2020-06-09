@@ -7,30 +7,38 @@ main_data_dir: ../all_train_300
 # main_model_dir: torch_models
 
 # active learning parameters
-m: 50
+m: 12
 n: 20
 
 # to vary:
 
-epochs: 50 # max epoch to run
-patience: 5 # implement patience to stop training if val doesnt improve
-
+# preprocessing
 workers: 8
 size: 400
-batch_size: 12
+reweight_sample: 50 #-1 #resample limited label images to 1k images with oversampling
+
+# model
+model_type: xception
+epochs: 2 # max epoch to run
+patience: 5 # implement patience to stop training if val doesnt improve
+batch_size: 10
 batch_multiplier: 10
 
-
+# loss
 loss_type: cross_entropy
-model_type: xception
+
+# metric 
 metric_type: softmax
 num_ftr: 1000
 num_classes: 5
 
+# optimizer
 optimizer_type: AdamW
 opt_kwargs:
   lr: 0.01
   weight_decay: 0.0025
+
+
 
 # optimizer_type: SGD
 # opt_kwargs:

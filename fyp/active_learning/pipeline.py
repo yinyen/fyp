@@ -2,6 +2,9 @@ import pandas as pd
 import numpy as np
 import torch
 from pytorch.param_helper import create_dir, create_main_dir, import_config
+from active_learning.model_pipeline import TrainPipeline
+from active_learning.data_gen import create_data_loader
+from active_learning.extract_features import extract_features
 import glob
 
 class ActiveLearning():
@@ -14,12 +17,16 @@ class ActiveLearning():
         
         ## STEP 0:
         # phase 0: init step j directory and config
-        self.create_step_dir(current_step)
+        current_step_dir = self.create_step_dir(current_step)
         if current_step == 0:
             label_df, val_df, unlabel_df = self.construct_initial_training_set(full_df, initial_d_unlabel, **config)
 
         # phase 1: Formation of initial cluster
+        model, metric_fc = self.train(current_step_dir, label_df, val_df, None, **self.config)
+        centroid = self.extract_features_and_form_initial_clusters(model, label_df, **config)
 
+        print(centroid)
+        raise Exception()
 
         while current_step < 3:
            
@@ -62,10 +69,29 @@ class ActiveLearning():
         # m is the initial sample size
         # n is the subsequent resampling size
         label_df = full_df.sample(m, random_state = random_state)
-        val_df = label_df.copy() # for step 0: validation set = newly added set
         unlabel_df = full_df.drop(label_df.index).copy()
+        while len(label_df["labels"].unique()) < 5:
+            sub_df = unlabel_df.sample(n, random_state = random_state)
+            label_df = label_df.append(sub_df)
+            unlabel_df = unlabel_df.drop(sub_df.index).copy()
+        val_df = unlabel_df.sample(n, random_state = random_state) # val_df is for next step training, but used for this step validation
+        unlabel_df = unlabel_df.drop(val_df.index).copy()
         return label_df, val_df, unlabel_df
 
-    def train(self, model, label_df, val_df):
+    def extract_features_and_form_initial_clusters(self, model, label_df, size, workers, **kwargs):
+        data_loader = create_data_loader(label_df, size, batch_size = 6, workers = workers)
+        f, y = extract_features(model, data_loader)
+        label_df["features"] = [j for j in f]
 
-        pass
+        centroid = {}
+        for i in range(5):
+            uf = label_df["labels"] == str(i)
+            cent = label_df.loc[uf, "features"].values.mean()
+            centroid[i] = cent
+        return centroid
+
+
+    def train(self, current_step_dir, label_df, val_df, model, **kwargs):
+        CNN = TrainPipeline(step_dir = current_step_dir, label_df = label_df, val_df = val_df, model = None, **kwargs)
+        model, metric_fc = CNN.get_model()
+        return model, metric_fc

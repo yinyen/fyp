@@ -8,3 +8,7 @@ diabetic-reti*
 fyp/torch_models/*
 .ipynb_checkpoints/z_fix_sample-checkpoint.ipynb
 fyp/.ipynb_checkpoints/eval_torch-checkpoint.ipynb
+fyp/.ipynb_checkpoints/extract_torch_features-checkpoint.py
+fyp/.ipynb_checkpoints/preprocess_img-checkpoint.ipynb
+fyp/.ipynb_checkpoints/torch_transform-checkpoint.ipynb
+fyp/AL/*
