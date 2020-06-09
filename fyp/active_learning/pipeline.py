@@ -7,6 +7,7 @@ from active_learning.data_gen import create_data_loader
 from active_learning.extract_features import extract_features
 import glob
 import json
+import joblib
 from tqdm import tqdm
 from evaluate.metrics import accuracy, avg_acc, get_cm
 from custom_math.kappa import quadratic_kappa
@@ -21,9 +22,14 @@ def unfamiliarity_index(feature, centroid_dict):
 class ActiveLearning():
     def __init__(self, **config):
         self.result_df = None
+        self.result_df2 = None
         self.config = config
+        self.max_steps = self.config.get("max_steps")
+
         self.create_dir(**self.config) #create main dir, return updated_main_dir (increment version if exist)
-        full_df, initial_d_unlabel = self.temp_get_filenames(**self.config)
+        full_df, initial_d_unlabel = self.temp_get_filenames(self.config.get("main_data_dir"), train_dir = "full_train")
+        test_df, _ = self.temp_get_filenames(self.config.get("main_data_dir"), train_dir = "val")
+
         full_df["ui"] = 0
         full_df["features"] = 0
 
@@ -40,7 +46,7 @@ class ActiveLearning():
         centroid = self.extract_features_and_form_clusters(model, label_df, **config)
 
         # phase 2: active learning
-        while current_step < 3:
+        while current_step < self.max_steps:
             if current_step > 0:
                 # init new step
                 current_step_dir = self.create_step_dir(current_step)
@@ -59,6 +65,7 @@ class ActiveLearning():
         
             # evaluate model on selected n samples
             result_df = self.evaluate(model, metric_fc, val_df, **self.config)
+            result_df2 = self.evaluate(model, metric_fc, test_df, **self.config)
 
             # dump results
             # dump label_df, val_df, unlabel_df and dump centroid
@@ -66,6 +73,7 @@ class ActiveLearning():
             self.dump_centroid(current_step_dir, centroid)
             # dump evaluation metrics
             self.dump_step_result(current_step_dir, result_df)
+            self.dump_step_result2(current_step_dir, result_df2)
 
             # repeat
             current_step += 1
@@ -74,10 +82,11 @@ class ActiveLearning():
         updated_main_dir = create_main_dir(f"{root_dir}/{main_dir}")
         self.config["updated_main_dir"] = updated_main_dir
 
-    def temp_get_filenames(self, main_data_dir, **kwargs):
-        f1 = glob.glob(f"{main_data_dir}/train/*/*.jpeg")
-        f2 = glob.glob(f"{main_data_dir}/val/*/*.jpeg")
-        all_files = f1 + f2
+    def temp_get_filenames(self, main_data_dir, train_dir = "full_train", **kwargs):
+        f1 = glob.glob(f"{main_data_dir}/{train_dir}/*/*.jpeg")
+        # f2 = glob.glob(f"{main_data_dir}/val/*/*.jpeg")
+        # all_files = f1 + f2
+        all_files = f1
         labels = [j.split("/")[-2] for j in all_files]
         full_df = pd.DataFrame(dict(files = all_files, labels = labels))
         initial_d_unlabel = all_files
@@ -163,8 +172,14 @@ class ActiveLearning():
         unlabel_df.to_csv(f"{current_step_dir}/unlabel_df.csv")
 
     def dump_centroid(self, current_step_dir, centroid):
+        joblib.dump(centroid, f'{current_step_dir}/centroid.pkl')
+        for i in range(5):
+            centroid[i] = centroid[i].tolist()
+            
         with open(f'{current_step_dir}/centroid.json', 'w') as outfile:
             json.dump(centroid, outfile)
+
+        
 
     def dump_step_result(self, current_step_dir, result_df):
         if self.result_df is None:
@@ -172,3 +187,10 @@ class ActiveLearning():
         else:
             self.result_df = self.result_df.append(result_df)
         self.result_df.to_csv(f"{current_step_dir}/result.csv")
+    
+    def dump_step_result2(self, current_step_dir, result_df2):
+        if self.result_df2 is None:
+            self.result_df2 = result_df2
+        else:
+            self.result_df2 = self.result_df2.append(result_df2)
+        self.result_df2.to_csv(f"{current_step_dir}/result_2.csv")

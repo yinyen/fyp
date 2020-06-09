@@ -60,6 +60,7 @@ class TrainPipeline():
         model_path, log_path = self.model_path, self.log_path
        
         # iterate training
+        ip = patience = kwargs.get("patience")
         best_loss = float('inf')
         best_acc = 0
         best_avg_acc = 0
@@ -92,6 +93,7 @@ class TrainPipeline():
                 torch.save(metric_fc.state_dict(), f'{model_path}/metric_fc.pth')
                 best_loss = val_log['loss']
                 print("=> saved best model by best loss")
+                ip = patience 
 
             if val_log['acc_'] > best_acc:
                 torch.save(model.state_dict(), f'{model_path}/best_acc_model.pth')
@@ -104,8 +106,16 @@ class TrainPipeline():
                 torch.save(metric_fc.state_dict(), f'{model_path}/best_avg_acc_metric_fc.pth')
                 best_avg_acc = val_log['avg_acc_']
                 print("=> saved best model by best avg acc")
+            
+            ip -= 1
+            if ip < 0:
+                print("Early stopping...")
+                break
+
         self.model = model
         self.metric_fc = metric_fc
+        # torch.save(model.state_dict(), f'{model_path}/last_model.pth')
+        # torch.save(metric_fc.state_dict(), f'{model_path}/last_metric.pth')
 
     def dump_config(self, model_path, kwargs):
         output_path = os.path.join(model_path, "config.yaml")
