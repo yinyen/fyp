@@ -7,7 +7,7 @@ from pytorch.param_helper import import_config, dump_config, create_dir
 from pytorch.data_helper import initialize_dataset
 from pytorch.model_helper import select_model, select_metric, select_optimizer, select_scheduler
 from pytorch.train_helper import PerformanceLog
-from pytorch.custom_loss import my_loss, my_loss_mse
+from pytorch.custom_loss import my_loss, my_loss_mse, myCrossEntropyLoss
 
 class TorchPipeline():
     def __init__(self, gpu_device = 0, **kwargs):
@@ -26,8 +26,11 @@ class TorchPipeline():
         criterion = self.init_loss(**kwargs)
         train_loader, val_loader, unseen_test_loader = self.init_dataset(**kwargs)
         model, metric_fc, optimizer, scheduler = self.init_model(**kwargs)
-        self.train(train_loader, val_loader, model, metric_fc, criterion, optimizer, scheduler, **kwargs)
+        if kwargs.get("retrain"):
+            self.init_retrain(model, metric_fc, **kwargs)
+
         self.dump_config(self.model_path, kwargs)
+        self.train(train_loader, val_loader, model, metric_fc, criterion, optimizer, scheduler, **kwargs)
 
     def init_loss(self, loss_type, **kwargs):
         # initialize loss and benchmark 
@@ -41,13 +44,16 @@ class TorchPipeline():
             criterion = my_loss
         elif loss_type == "mse":
             criterion = my_loss_mse
+        elif loss_type == "my_cross_entropy":
+            criterion = myCrossEntropyLoss
 
         cudnn.benchmark = True
         return criterion
 
-    def init_dataset(self, main_data_dir, batch_size, size, workers, fix_sample = None, fix_sample_val = None, use_train_dir = 'train', **kwargs):
+    def init_dataset(self, main_data_dir, batch_size, size, workers, fix_sample = None, fix_sample_val = None, force_random_sample = -1, use_train_dir = 'train', **kwargs):
         # initialize dataset generators
-        train_loader, val_loader, unseen_test_loader = initialize_dataset(main_data_dir, batch_size, size, workers, fix_sample, fix_sample_val, use_train_dir)
+
+        train_loader, val_loader, unseen_test_loader = initialize_dataset(main_data_dir, batch_size, size, workers, fix_sample, fix_sample_val, force_random_sample, use_train_dir)
         return train_loader, val_loader, unseen_test_loader 
 
     def init_model(self, model_type, metric_type, num_ftr, num_classes, optimizer_type, opt_kwargs, scheduler_type, scheduler_kwargs, model_kwargs = {}, **kwargs):
@@ -58,8 +64,12 @@ class TorchPipeline():
         scheduler = select_scheduler(optimizer, scheduler_type = scheduler_type, scheduler_kwargs = scheduler_kwargs)
         return model, metric_fc, optimizer, scheduler
 
-    def init_retrain(self, model, premodel_path):
-        pass
+    def init_retrain(self, model, metric_fc, premodel_path, premetric_path, **kwargs):
+        # premodel_path = "./torch_models/xception_d400_force_v1_v09/best_avg_acc_model.pth"
+        # premetric_path = "./torch_models/xception_d400_force_v1_v09/best_avg_acc_metric_fc.pth"
+        model.load_state_dict(torch.load(premodel_path))
+        metric_fc.load_state_dict(torch.load(premetric_path))
+        return model, metric_fc
     
     def train(self, train_loader, val_loader, model, metric_fc, criterion, optimizer, scheduler, epochs, metric_type, batch_multiplier = 1, **kwargs):
         model_path, log_path = self.model_path, self.log_path
