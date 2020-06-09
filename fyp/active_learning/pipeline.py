@@ -6,6 +6,7 @@ from active_learning.model_pipeline import TrainPipeline
 from active_learning.data_gen import create_data_loader
 from active_learning.extract_features import extract_features
 import glob
+import json
 from tqdm import tqdm
 from evaluate.metrics import accuracy, avg_acc, get_cm
 from custom_math.kappa import quadratic_kappa
