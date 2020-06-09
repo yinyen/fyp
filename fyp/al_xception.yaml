@@ -1,0 +1,50 @@
+# Init active learning
+train_name: active_learning
+
+root_dir: "AL"
+main_dir: "active_learning_v1"
+main_data_dir: ../all_train_300
+# main_model_dir: torch_models
+
+# active learning parameters
+m: 50
+n: 20
+
+# to vary:
+
+epochs: 50 # max epoch to run
+patience: 5 # implement patience to stop training if val doesnt improve
+
+workers: 8
+size: 400
+batch_size: 12
+batch_multiplier: 10
+
+
+loss_type: cross_entropy
+model_type: xception
+metric_type: softmax
+num_ftr: 1000
+num_classes: 5
+
+optimizer_type: AdamW
+opt_kwargs:
+  lr: 0.01
+  weight_decay: 0.0025
+
+# optimizer_type: SGD
+# opt_kwargs:
+#   lr: 0.1
+#   momentum: 0.95
+#   # weight_decay: 0.0001
+#   weight_decay: 0.0025
+
+model_kwargs:
+  pretrained: True
+scheduler_type: CosineAnnealingLR
+scheduler_kwargs:
+  T_max: 50
+  eta_min: 0.0001
+
+# https://www.fast.ai/2018/07/02/adam-weight-decay/#implementing-adamw
+# adamw with onecycle
