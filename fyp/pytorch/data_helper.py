@@ -2,8 +2,10 @@ import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import numpy as np
+import random
 
-def initialize_dataset(main_data_dir = "./data3", batch_size = 64, size = 100, workers = 16, fix_sample = None, fix_sample_val = -1, use_train_dir = "full_train"):
+
+def initialize_dataset(main_data_dir = "./data3", batch_size = 64, size = 100, workers = 16, fix_sample = None, fix_sample_val = -1, force_random_sample = -1, use_train_dir = "full_train"):
 
     transform_train = transforms.Compose([
         transforms.Resize((size, size)),
@@ -27,31 +29,54 @@ def initialize_dataset(main_data_dir = "./data3", batch_size = 64, size = 100, w
     # calculate weights
     if fix_sample is not None:
         targets = np.array(train_set.targets)
-        samples_weight = np.array([1/np.mean(targets == i) for i in np.unique(targets)])
-        samples_weight = np.array([samples_weight[t] for t in targets])
-        samples_weight = torch.from_numpy(samples_weight)
-        samples_weight = samples_weight.double()
-        sampler = torch.utils.data.WeightedRandomSampler(samples_weight, fix_sample)
+        if force_random_sample != -1:
+            idxs = [j for j in range(len(targets))]
+            random.seed(123)
+            random.shuffle(idxs)
+            idxs = idxs[:force_random_sample]
+            s_targets = targets[idxs]
+        else:
+            s_targets = targets
 
-        targets = np.array(test_set.targets)
-        if fix_sample_val == -1:
-            fix_sample_val = targets.shape[0]
-        samples_weight = np.array([1 for i in np.unique(targets)])
-        samples_weight = np.array([samples_weight[t] for t in targets])
+        samples_weight = np.array([1/np.mean(s_targets == i) for i in np.unique(s_targets)])
+
+        if force_random_sample != -1:
+            samples_weight = np.array([samples_weight[t] if i in idxs else 0 for i, t in enumerate(targets)])
+        else:
+            samples_weight = np.array([samples_weight[t] for t in targets])
+            
         samples_weight = torch.from_numpy(samples_weight)
         samples_weight = samples_weight.double()
-        val_sampler = torch.utils.data.WeightedRandomSampler(samples_weight, fix_sample_val)
+
+        if force_random_sample != -1:
+            sampler = torch.utils.data.WeightedRandomSampler(samples_weight, fix_sample, replacement = True)
+        else:
+            sampler = torch.utils.data.WeightedRandomSampler(samples_weight, fix_sample, replacement = True)
 
         train_loader = torch.utils.data.DataLoader(
             train_set,
             batch_size=batch_size,
             sampler=sampler,
             num_workers=workers)
-        val_loader = torch.utils.data.DataLoader(
-            test_set,
-            batch_size=batch_size,
-            sampler=val_sampler,
-            num_workers=workers)
+        
+        if fix_sample_val == -1:
+            val_loader = torch.utils.data.DataLoader(
+                test_set,
+                batch_size=batch_size,
+                num_workers=workers)
+        else:
+            targets = np.array(test_set.targets)
+            samples_weight = np.array([1 for i in np.unique(targets)])
+            samples_weight = np.array([samples_weight[t] for t in targets])
+            samples_weight = torch.from_numpy(samples_weight)
+            samples_weight = samples_weight.double()
+            val_sampler = torch.utils.data.WeightedRandomSampler(samples_weight, fix_sample_val)
+        
+            val_loader = torch.utils.data.DataLoader(
+                test_set,
+                batch_size=batch_size,
+                sampler=val_sampler,
+                num_workers=workers)
     else:
         train_loader = torch.utils.data.DataLoader(
             train_set,
