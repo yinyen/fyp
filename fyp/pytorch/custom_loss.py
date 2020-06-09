@@ -45,6 +45,7 @@ def asm(A):
     # print(indices.size(), A_softmax.size())
     return torch.matmul(A_softmax, indices)
     # return A_softmax
+
 def asm2(A):
     dim = 1
     epsilon = 1e-12
@@ -54,30 +55,53 @@ def asm2(A):
     A_softmax = A_exp / (torch.sum(A_exp,dim=1,keepdim=True)+epsilon)
     indices = torch.arange(start=0, end=A.size()[dim]).float().cuda()
     return torch.matmul(A_softmax, indices)
+    
 
-    
+def myCrossEntropyLoss(outputs, labels):
+    batch_size = outputs.size()[0]            # batch_size
+    outputs = F.log_softmax(outputs, dim=1)   # compute the log of softmax values
+    outputs = outputs[range(batch_size), labels] # pick the values corresponding to the labels
+    return -torch.sum(outputs)/batch_size
+
+def myCrossEntropyLoss2(outputs, labels):
+    batch_size = outputs.size()[0]            # batch_size
+    outputs = F.log_softmax(outputs, dim=1)   # compute the log of softmax values
+    # print(labels.double().pow(0.3))
+    k0, k1, k2 = 0.3, 5, 0.6
+    # eps = 1e-12
+    # b = asm2(outputs)
+    # c = labels.type(torch.float32)
+    # loss1 = (b-c+eps).abs().pow(k0)
+
+    outputs = ((1+labels.double()).pow(k2))*outputs[range(batch_size), labels] # pick the values corresponding to the labels
+    return -torch.sum(outputs)/batch_size
+
+
 def my_loss(output, target):
-    k1, k2 = 5,3
-    # k1,k2 = 2,1
-    
-    # raise Exception()
-    eps = 1e-10
+    k0, k1, k2 = 1.2, 5, 0.5
+
+    eps = 1e-12
     b = asm2(output)
-    loss1 = (b-target+eps).pow(2).pow(0.5)
-    loss1 = loss1.type(torch.float32)
-    loss2 = (5-b).pow(2).pow(0.5/k1)
-    loss3 = (1+100*target).pow(2).pow(0.5/k2)
+    c = target.type(torch.float32)
+    loss1 = (b-c+eps).abs().pow(k0)
+    # loss1 = loss1.type(torch.float32)
+    # loss2 = (5-b).abs().pow(1/k1)
+    loss3 = (1+target).pow(k2)
+
     # loss_agg = loss1*loss2*loss3
-    loss_agg = loss1
-    loss = torch.mean(loss_agg)
+    loss_agg = loss1*loss3
+    ce = myCrossEntropyLoss(output, target)
+    ce2 = myCrossEntropyLoss2(output, target)
+    # print(ce, ce2)
+    # loss = torch.mean(loss_agg) + ce
+    loss = ce2
 
     # print("PRED")
     # print(torch.argmax(output, dim = 1))
+    # print(target)
     # print("LOSS")
     # print(loss_agg)
     # print(loss)
-    # loss = torch.mean(loss1)
-
     return loss
 
     
