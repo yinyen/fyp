@@ -49,14 +49,14 @@ def train(loader_data, model, metric_fc, criterion, optimizer, metric = "not_sof
     count = 0
     initial_loss = 0
     last_loss = 0
-    for i, (input, target) in tqdm(enumerate(loader_data), total=len(loader_data)):
+    for i, (input1, input2, target) in tqdm(enumerate(loader_data), total=len(loader_data)):
         if count == 0:
             optimizer.step() # update cnn weights
             optimizer.zero_grad()
             count = batch_multiplier
 
-        input, target = input.cuda(), target.long().cuda() 
-        feature = model(input)
+        input1, input2, target = input1.cuda(), input2.cuda(), target.long().cuda() 
+        feature = model(input1, input2)
         if metric == 'softmax':
             output = metric_fc(feature)
         else:
@@ -74,8 +74,8 @@ def train(loader_data, model, metric_fc, criterion, optimizer, metric = "not_sof
 
         # compute acc on the fly
         acc1, = torch_accuracy(output, target, topk=(1,))
-        losses.update(loss.item(), input.size(0))
-        acc1s.update(acc1.item(), input.size(0))
+        losses.update(loss.item(), target.size(0))
+        acc1s.update(acc1.item(), target.size(0))
         
         # record predicted
         y_pred += output.argmax(axis = 1).tolist()
@@ -111,10 +111,9 @@ def validate(loader_data, model, metric_fc, criterion, metric = "not_softmax"):
         y_pred = []
         y_true = []
         for i, (input, target) in tqdm(enumerate(loader_data), total=len(loader_data)):
-            input = input.cuda()
-            target = target.long().cuda() 
-
-            feature = model(input)
+            input1, input2, target = input1.cuda(), input2.cuda(), target.long().cuda() 
+            feature = model(input1, input2)
+            
             if metric == 'softmax':
                 output = metric_fc(feature)
             else:
@@ -122,8 +121,8 @@ def validate(loader_data, model, metric_fc, criterion, metric = "not_softmax"):
             loss = criterion(output, target)
 
             acc1, = torch_accuracy(output, target, topk=(1,))
-            losses.update(loss.item(), input.size(0))
-            acc1s.update(acc1.item(), input.size(0))
+            losses.update(loss.item(), target.size(0))
+            acc1s.update(acc1.item(), target.size(0))
 
             y_pred += output.argmax(axis = 1).tolist()
             y_true += target.tolist()

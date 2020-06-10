@@ -9,6 +9,7 @@ from torchvision import models
 from torch.optim import lr_scheduler
 import pytorch.metrics as metrics
 from pytorch.xception import xception
+from pytorch.dual_xception import dual_xception
 
 def select_model(model_type, model_kwargs):
     pretrained = model_kwargs.get("pretrained")
@@ -33,6 +34,8 @@ def select_model(model_type, model_kwargs):
         model = xception() 
     elif model_type == "vgg11":
         model = models.vgg11_bn(pretrained=pretrained) 
+    elif model_type == "dual_xception":
+        model = dual_xception() 
         
     model = model.cuda()
     return model
