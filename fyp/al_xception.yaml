@@ -3,22 +3,23 @@ train_name: active_learning
 
 # root_dir: "AL"
 root_dir: "/media/workstation/Storage/Test/AL"
-main_dir: "active_learning_v1_test"
+main_dir: "al_val"
 main_data_dir: ../all_train_300
 train_dir: full_train
 
 max_steps: 50
 
 # active learning parameters
-m: 50
-n: 18
+m: 500 # start
+n: 50  # step sampling
 
 # to vary:
 
 # preprocessing
 workers: 8
 size: 400
-reweight_sample: 2000 #-1 #resample limited label images to 1k images with oversampling
+reweight_sample: 1 #-1 #resample limited label images to 1k images with oversampling
+reweight_sample_factor: 10 # change to factor
 
 # model
 model_type: xception

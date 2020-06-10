@@ -42,7 +42,7 @@ class ImgDataset(Dataset):
             image = self.transform(image)
         return image, int(label)
 
-def initialize_multi_gen(label_df, val_df, size, batch_size, reweight_sample = -1, workers = 4):
+def initialize_multi_gen(label_df, val_df, size, batch_size, reweight_sample = -1, reweight_sample_factor = 1, workers = 4):
     transform_train = transforms.Compose([
             transforms.Resize((size, size)),
             transforms.RandomRotation(180),
@@ -59,12 +59,14 @@ def initialize_multi_gen(label_df, val_df, size, batch_size, reweight_sample = -
 
     if reweight_sample != -1:
         targets = np.array(train_set.targets)
+        total_n = targets.shape[0]
+        resample_total = int(total_n*reweight_sample_factor)
         s_targets = targets
         samples_weight = np.array([1/np.mean(s_targets == i) for i in np.unique(s_targets)])
         samples_weight = np.array([samples_weight[t] for t in targets])
         samples_weight = torch.from_numpy(samples_weight)
         samples_weight = samples_weight.double()
-        sampler = torch.utils.data.WeightedRandomSampler(samples_weight, reweight_sample, replacement = True)
+        sampler = torch.utils.data.WeightedRandomSampler(samples_weight, resample_total, replacement = True)
         train_gen = DataLoader(
             train_set,
             batch_size=batch_size,

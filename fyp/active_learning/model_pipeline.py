@@ -42,8 +42,8 @@ class TrainPipeline():
         cudnn.benchmark = True
         return criterion
 
-    def init_dataset(self, label_df, val_df, size, batch_size, reweight_sample, workers, **kwargs):
-        train_loader, val_loader = initialize_multi_gen(label_df, val_df, size, batch_size, reweight_sample, workers)
+    def init_dataset(self, label_df, val_df, size, batch_size, reweight_sample, reweight_sample_factor, workers, **kwargs):
+        train_loader, val_loader = initialize_multi_gen(label_df, val_df, size, batch_size, reweight_sample, reweight_sample_factor, workers)
         return train_loader, val_loader 
 
     def init_model(self, model, metric_fc, model_type, metric_type, num_ftr, num_classes, optimizer_type, opt_kwargs, scheduler_type, scheduler_kwargs, model_kwargs = {}, **kwargs):
@@ -112,6 +112,10 @@ class TrainPipeline():
                 print("Early stopping...")
                 break
 
+            if val_log['avg_acc_'] > 0.95:
+                print("val kappa above 0.95")
+                break
+            
         self.model = model
         self.metric_fc = metric_fc
         # torch.save(model.state_dict(), f'{model_path}/last_model.pth')
