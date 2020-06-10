@@ -52,16 +52,21 @@ class ActiveLearning():
                 current_step_dir = self.create_step_dir(current_step)
 
                 # re-train model
-                model, metric_fc = self.train(current_step_dir, label_df, label_df, model, metric_fc, **self.config) # currently only train and validate on label_df
+                # model, metric_fc = self.train(current_step_dir, label_df, label_df, model, metric_fc, **self.config) # currently only train and validate on label_df
+                model, metric_fc = self.train(current_step_dir, label_df, val_df, model, metric_fc, **self.config) # currently only train and validate on label_df
 
                 # extract features and update clusters
                 centroid = self.extract_features_and_form_clusters(model, label_df, **config)
 
+                # add selected n samples to labelled
+                label_df = label_df.append(val_df)
+        
+
             # compute unfamiliarity index and remove selected n samples from unlabelled
             val_df, unlabel_df = self.extract_features_and_compute_index(model, unlabel_df, centroid, **self.config)
             
-            # add selected n samples to labelled
-            label_df = label_df.append(val_df)
+            # # add selected n samples to labelled
+            # label_df = label_df.append(val_df)
         
             # evaluate model on selected n samples
             result_df = self.evaluate(model, metric_fc, val_df, **self.config)
