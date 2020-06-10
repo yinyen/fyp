@@ -130,14 +130,14 @@ class ActiveLearning():
             centroid[i] = cent
         return centroid
 
-    def extract_features_and_compute_index(self, model, unlabel_df, centroid, n, size, workers, **kwargs):
+    def extract_features_and_compute_index(self, model, unlabel_df, centroid, n, size, workers, outlier = 0, **kwargs):
         data_loader = create_data_loader(unlabel_df, size, batch_size = 6, workers = workers)
         f, y = extract_features(model, data_loader)
         ui_list = [unfamiliarity_index(feature, centroid) for feature in f]
         unlabel_df["ui"] = ui_list
         unlabel_df = unlabel_df.sort_values("ui", ascending = False)
         N = unlabel_df.shape[0]
-        subN = int(N*0.98)
+        subN = int(N*(1-outlier))
         toadd_df = unlabel_df.tail(subN).head(n) # selected n samples
         unlabel_df = unlabel_df.drop(toadd_df.index)
         return toadd_df, unlabel_df

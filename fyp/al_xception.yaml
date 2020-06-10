@@ -1,8 +1,8 @@
 # Init active learning
 train_name: active_learning
 
-# root_dir: "AL"
-root_dir: "/media/workstation/Storage/Test/AL"
+root_dir: "AL"
+# root_dir: "/media/workstation/Storage/Test/AL"
 main_dir: "al_val"
 main_data_dir: ../all_train_300
 train_dir: full_train
@@ -10,9 +10,9 @@ train_dir: full_train
 max_steps: 50
 
 # active learning parameters
-m: 500 # start
+m: 200 # start
 n: 50  # step sampling
-
+outlier: 0
 # to vary:
 
 # preprocessing
