@@ -13,16 +13,21 @@ import numpy as np
 from active_learning.data_gen import create_data_loader
 from active_learning.extract_features import extract_features
 
-train_name = "xception_sgd_test_d500_new_v01"
-main_model_dir = "torch_models" #torch_models
+
+# main_model_dir = "torch_models" #torch_models
+
+main_model_dir = "/media/workstation/Storage/Test/AL/al_val_v01" #torch_models
+train_name = "step_049"
 model_type = "xception"
 best = "best_acc_"
+size = 400 
+workers = 6
 
 metric_type = "softmax"
 model=select_model(model_type, {})
 
-PATH = f"./{main_model_dir}/{train_name}/{best}model.pth"
-PATH2 = f"./{main_model_dir}/{train_name}/{best}metric_fc.pth"
+PATH = f"{main_model_dir}/{train_name}/{best}model.pth"
+PATH2 = f"{main_model_dir}/{train_name}/{best}metric_fc.pth"
 
 metric_fc = select_metric(metric_type, num_ftr = 1000, num_classes = 5)
 
@@ -55,8 +60,7 @@ fdf = pd.concat(df_list)
 
 # fdf = fdf.head(1000)
 
-size = 500 
-workers = 6
+
 data_loader = create_data_loader(fdf, size, batch_size = 2, workers = workers)
 f, y = extract_features(model, data_loader)
 fdf["features"] = [j for j in f]
@@ -76,8 +80,8 @@ for i in range(len(fdf)):
 fdf["concat_features"] = concat_features
 fdf = fdf.sample(frac=1)
 
-f1 = fdf.iloc[:700, :]
-f2 = fdf.iloc[700:, :]
+f1 = fdf.iloc[:400, :]
+f2 = fdf.iloc[400:, :]
 
 X_train = np.array(f1["concat_features"].values.tolist())
 y_train = f1["labels"].values
@@ -98,7 +102,11 @@ clf.fit(X_train, y_train)
 
 y_pred_train = clf.predict(X_train)
 y_pred_test = clf.predict(X_test)
-print(y_pred_train.shape, y_pred_test.shape)
+print(y_test.shape, y_pred_test.shape)
+print(y_train.shape, y_pred_train.shape)
+
+y_pred_train, y_train = y_pred_train.astype(int), y_train.astype(int)
+y_pred_test, y_test = y_pred_test.astype(int), y_test.astype(int)
 
 acc = accuracy(y_train, y_pred_train)
 acc2 = accuracy(y_test, y_pred_test)
