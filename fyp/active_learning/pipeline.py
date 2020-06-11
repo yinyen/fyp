@@ -11,6 +11,11 @@ import joblib
 from tqdm import tqdm
 from evaluate.metrics import accuracy, avg_acc, get_cm
 from custom_math.kappa import quadratic_kappa
+import torch.utils.model_zoo as model_zoo
+
+def reset_model(model):
+    model.load_state_dict(model_zoo.load_url('http://data.lip6.fr/cadene/pretrainedmodels/xception-43020ad28.pth'))
+    return model
 
 def unfamiliarity_index(feature, centroid_dict):
     ui = 0
@@ -53,8 +58,9 @@ class ActiveLearning():
 
                 # re-train model
                 # model, metric_fc = self.train(current_step_dir, label_df, label_df, model, metric_fc, **self.config) # currently only train and validate on label_df
+                reset_model(model)
                 model, metric_fc = self.train(current_step_dir, label_df, val_df, model, metric_fc, **self.config) # currently only train and validate on label_df
-
+                
                 # extract features and update clusters
                 centroid = self.extract_features_and_form_clusters(model, label_df, **config)
 
