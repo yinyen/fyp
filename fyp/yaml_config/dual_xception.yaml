@@ -1,4 +1,4 @@
-train_name: dual_xception_test
+train_name: dual_xception_higherlr
 
 # RETRAIN
 main_data_dir: ../all_train_300
@@ -7,22 +7,25 @@ main_model_dir: torch_models
 workers: 8
 size: 400
 batch_size: 6
-batch_multiplier: 15
+batch_multiplier: 10
 reweight_sample: 1
-reweight_sample_factor: 0.2
+reweight_sample_factor: 0.025
 
-epochs: 50
+epochs: 200
 
 loss_type: cross_entropy
 model_type: dual_xception
+model_kwargs:
+  pretrained: True
+
 metric_type: softmax
 num_ftr: 1000
 num_classes: 5
 
 optimizer_type: AdamW
 opt_kwargs:
-  lr: 0.01
-  weight_decay: 0.0025
+  lr: 0.001
+  weight_decay: 0.00025
 
 # optimizer_type: SGD
 # opt_kwargs:
@@ -31,12 +34,18 @@ opt_kwargs:
 #   # weight_decay: 0.0001
 #   weight_decay: 0.0025
 
-model_kwargs:
-  pretrained: True
-scheduler_type: CosineAnnealingLR
+
+scheduler_type: CosineAnnealingWarmRestarts
 scheduler_kwargs:
-  T_max: 50
-  eta_min: 0.0001
+  T_0: 10
+  T_mult: 2
+  eta_min: 0.00001
+  last_epoch: -1
+
+# scheduler_type: CosineAnnealingLR
+# scheduler_kwargs:
+#   T_max: 200
+#   eta_min: 0.000001
 
 # https://www.fast.ai/2018/07/02/adam-weight-decay/#implementing-adamw
 # adamw with onecycle
