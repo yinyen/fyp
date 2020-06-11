@@ -110,7 +110,7 @@ def validate(loader_data, model, metric_fc, criterion, metric = "not_softmax"):
     with torch.no_grad():
         y_pred = []
         y_true = []
-        for i, (input, target) in tqdm(enumerate(loader_data), total=len(loader_data)):
+        for i, (input1, input2, target) in tqdm(enumerate(loader_data), total=len(loader_data)):
             input1, input2, target = input1.cuda(), input2.cuda(), target.long().cuda() 
             feature = model(input1, input2)
             
