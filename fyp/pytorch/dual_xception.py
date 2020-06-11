@@ -228,6 +228,10 @@ class Xception(nn.Module):
         return x
 
 
+def init_all(model, init_func, *params, **kwargs):
+    for p in model.parameters():
+        init_func(p, *params, **kwargs)
+
 def dual_xception(num_classes=1000, pretrained=False):
     model = Xception(num_classes=num_classes)
     if pretrained:
@@ -246,5 +250,11 @@ def dual_xception(num_classes=1000, pretrained=False):
 
     # TODO: ugly
     model.last_linear = model.fc
+    
+
+    # model = UNet(3, 10)
+    init_all(model, torch.nn.init.normal_, mean=0., std=0.1) 
+    # init_all(model, torch.nn.init.kaiming_normal) 
+
     del model.fc
     return model
