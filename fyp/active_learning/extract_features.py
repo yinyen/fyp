@@ -41,7 +41,7 @@ def extract_dual_features(model, unseen_test_loader):
 
     N = len(y_list)
     k = N // 2
-    new_feature_list = [feature_list[i] + feature_list[-(i+1)] for i in range(k)]
+    new_feature_list = [feature_list[i] + feature_list[k+1] for i in range(k)]
     print(len(new_feature_list), k, len(new_feature_list[0]))
 
     features = np.array(new_feature_list) #.reshape(-1, 8192)

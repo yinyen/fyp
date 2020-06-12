@@ -58,7 +58,7 @@ class TrainPipeline():
         scheduler = select_scheduler(optimizer, scheduler_type = scheduler_type, scheduler_kwargs = scheduler_kwargs)
         return model, metric_fc, optimizer, scheduler
 
-    def train(self, train_loader, val_loader, model, metric_fc, criterion, optimizer, scheduler, epochs, metric_type, batch_multiplier = 1, **kwargs):
+    def train(self, train_loader, val_loader, model, metric_fc, criterion, optimizer, scheduler, epochs, metric_type, batch_multiplier = 1, first_step = -1, **kwargs):
         model_path, log_path = self.model_path, self.log_path
        
         # iterate training
@@ -114,8 +114,8 @@ class TrainPipeline():
                 print("Early stopping...")
                 break
 
-            if val_log['avg_acc_'] > 95:
-                print("val kappa above 95")
+            if val_log['avg_acc_'] > 75 and first_step:
+                print("val kappa above 75 for first active learning step")
                 break
             
         self.model = model

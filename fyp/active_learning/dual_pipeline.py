@@ -13,10 +13,12 @@ from evaluate.metrics import accuracy, avg_acc, get_cm
 from custom_math.kappa import quadratic_kappa
 import torch.utils.model_zoo as model_zoo
 from pytorch.dual_data_helper import create_dual_label_df
+from pytorch.dual_xception import init_all
 
 def reset_model(model):
-    model.load_state_dict(model_zoo.load_url('http://data.lip6.fr/cadene/pretrainedmodels/xception-43020ad28.pth'))
-    return model
+    init_all(model, torch.nn.init.normal_, mean=0., std=0.1) 
+    # model.load_state_dict(model_zoo.load_url('http://data.lip6.fr/cadene/pretrainedmodels/xception-43020ad28.pth'))
+    # return model
 
 def unfamiliarity_index(feature, centroid_dict):
     ui = 0
@@ -48,6 +50,7 @@ class DualActiveLearning():
             label_df, val_df, unlabel_df = self.construct_initial_training_set(full_df, **config)
 
         # phase 1: Formation of initial cluster
+        self.config["first_step"] = 1
         model, metric_fc = self.train(current_step_dir, label_df, val_df, None, None, **self.config)
         centroid = self.extract_features_and_form_clusters(model, label_df, **config)
 
@@ -59,7 +62,8 @@ class DualActiveLearning():
 
                 # re-train model
                 # model, metric_fc = self.train(current_step_dir, label_df, label_df, model, metric_fc, **self.config) # currently only train and validate on label_df
-                reset_model(model)
+                # reset_model(model)
+                self.config["first_step"] = -1
                 model, metric_fc = self.train(current_step_dir, label_df, val_df, model, metric_fc, **self.config) # currently only train and validate on label_df
                 
                 # extract features and update clusters
