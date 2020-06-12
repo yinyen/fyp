@@ -4,6 +4,7 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 from pytorch.param_helper import import_config, create_dir
 from active_learning.dual_pipeline import DualActiveLearning
+from active_learning.dual_random_pipeline import DualRandomActiveLearning
 import argparse
 
 def parse_args():
@@ -21,4 +22,9 @@ config_kwargs = import_config(config_file)
 print(config_kwargs)
 
 # run entire training
-DualActiveLearning(**config_kwargs)
+if config_kwargs["style"] == "yy":
+    print("Using custom active learning: yy")
+    DualActiveLearning(**config_kwargs)
+elif config_kwargs["style"] == "random":
+    print("Using custom active learning: Random")
+    DualRandomActiveLearning(**config_kwargs)

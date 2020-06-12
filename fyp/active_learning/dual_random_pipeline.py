@@ -15,19 +15,7 @@ import torch.utils.model_zoo as model_zoo
 from pytorch.dual_data_helper import create_dual_label_df
 from pytorch.dual_xception import init_all
 
-def reset_model(model):
-    init_all(model, torch.nn.init.normal_, mean=0., std=0.1) 
-    # model.load_state_dict(model_zoo.load_url('http://data.lip6.fr/cadene/pretrainedmodels/xception-43020ad28.pth'))
-    # return model
-
-def unfamiliarity_index(feature, centroid_dict):
-    ui = 0
-    for key, val in centroid_dict.items():
-        d = np.linalg.norm(feature-val)
-        ui += np.sqrt(d)
-    return ui
-
-class DualActiveLearning():
+class DualRandomActiveLearning():
     def __init__(self, **config):
         self.result_df = None
         self.result_df2 = None
@@ -52,7 +40,7 @@ class DualActiveLearning():
         # phase 1: Formation of initial cluster
         self.config["first_step"] = 1
         model, metric_fc = self.train(current_step_dir, label_df, val_df, None, None, **self.config)
-        centroid = self.extract_features_and_form_clusters(model, label_df, **config)
+        # centroid = self.extract_features_and_form_clusters(model, label_df, **config)
 
         # phase 2: active learning
         while current_step < self.max_steps:
@@ -67,15 +55,18 @@ class DualActiveLearning():
                 model, metric_fc = None, None
                 model, metric_fc = self.train(current_step_dir, label_df, val_df, model, metric_fc, **self.config) # currently only train and validate on label_df
                 
-                # extract features and update clusters
-                centroid = self.extract_features_and_form_clusters(model, label_df, **config)
+                # # extract features and update clusters
+                # centroid = self.extract_features_and_form_clusters(model, label_df, **config)
 
                 # add selected n samples to labelled
                 label_df = label_df.append(val_df)
         
 
             # compute unfamiliarity index and remove selected n samples from unlabelled
-            val_df, unlabel_df = self.extract_features_and_compute_index(model, unlabel_df, centroid, **self.config)
+            # val_df, unlabel_df = self.extract_features_and_compute_index(model, unlabel_df, centroid, **self.config)
+            n = self.config["n"] 
+            val_df = unlabel_df.sample(n)    
+            unlabel_df = unlabel_df.drop(val_df.index)                   
             
             # # add selected n samples to labelled
             # label_df = label_df.append(val_df)
@@ -87,7 +78,7 @@ class DualActiveLearning():
             # dump results
             # dump label_df, val_df, unlabel_df and dump centroid
             self.dump_df(current_step_dir, label_df, val_df, unlabel_df)
-            self.dump_centroid(current_step_dir, centroid)
+            # self.dump_centroid(current_step_dir, centroid)
             # dump evaluation metrics
             self.dump_step_result(current_step_dir, result_df)
             self.dump_step_result2(current_step_dir, result_df2)

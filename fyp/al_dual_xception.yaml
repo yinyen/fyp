@@ -1,5 +1,6 @@
 # Init active learning
 train_name: dual_active_learning
+style: yy
 
 # root_dir: "AL"
 root_dir: "/media/workstation/Storage/Test/Dual_AL"
@@ -10,7 +11,7 @@ train_dir: full_train
 max_steps: 50
 
 # active learning parameters
-m: 500 # start
+m: 200 # start
 n: 100  # step sampling
 outlier: 0.01
 # to vary:
