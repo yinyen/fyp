@@ -13,27 +13,19 @@ if torch.cuda.is_available():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 main_model_dir = "torch_models" #torch_models
-model_type = "resnet18"
-train_name = f"{model_type}_v4"
-best = ""
-
-main_model_dir = "torch_models" #torch_models
-# model_type = "xception"
-# train_name = 'xception_d400_force_v2'
-model_type = "vgg11"
-train_name = "vgg_d400_force_linear_v1_v00"
+main_model_dir = "/media/workstation/Storage/Test/AL/al_val_v01" #torch_models
+model_type = "xception"
+train_name = "step_048"
 best = "best_avg_acc_"
 best = "best_acc_"
 size = 400
-batch_size = 8
-# best = ""
+batch_size = 6
 
-metric_type = "adacos"
 metric_type = "softmax"
 model=select_model(model_type, {})
 
-PATH = f"./{main_model_dir}/{train_name}/{best}model.pth"
-PATH2 = f"./{main_model_dir}/{train_name}/{best}metric_fc.pth"
+PATH = f"{main_model_dir}/{train_name}/{best}model.pth"
+PATH2 = f"{main_model_dir}/{train_name}/{best}metric_fc.pth"
 
 metric_fc = select_metric(metric_type, num_ftr = 1000, num_classes=5)
 

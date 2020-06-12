@@ -2,33 +2,27 @@ import os
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
+from pytorch.dual_train_helper import train, validate
 from pytorch.param_helper import import_config, dump_config, create_dir
 from pytorch.data_helper import initialize_dataset
 from pytorch.model_helper import select_model, select_metric, select_optimizer, select_scheduler
+from pytorch.train_helper import PerformanceLog
 from pytorch.custom_loss import my_loss, my_loss_mse, myCrossEntropyLoss
-from pytorch.dual_train_helper import train, validate, PerformanceLog
-from pytorch.dual_data_helper import create_dual_label_df, split_dual_df, initialize_dual_gen
+from active_learning.data_gen import initialize_multi_gen
+from pytorch.dual_data_helper import initialize_dual_gen
 
-class DualTorchPipeline():
-    def __init__(self, gpu_device = 0, **kwargs):
-        device = torch.device(f"cuda:{gpu_device}" if torch.cuda.is_available() else "cpu")
-        
-        train_name = kwargs.get("train_name")
-        main_model_dir = kwargs.get("main_model_dir")
-        train_name_updated = create_dir(train_name, main_model_dir)
-        self.model_path = f"{main_model_dir}/{train_name_updated}"
-        self.log_path = f"{main_model_dir}/{train_name_updated}/log.csv"
+class TrainPipeline():
+    def __init__(self, step_dir, label_df, val_df, model = None, metric_fc = None, **kwargs):
+        self.model_path = step_dir
+        self.log_path = f"{step_dir}/log.csv"
 
         print("=====================================")
         print("SAVING MODEL TO >>>", self.model_path)
         print("=====================================")
 
         criterion = self.init_loss(**kwargs)
-        train_loader, val_loader = self.init_dataset(**kwargs)
-        model, metric_fc, optimizer, scheduler = self.init_model(**kwargs)
-        if kwargs.get("retrain"):
-            self.init_retrain(model, metric_fc, **kwargs)
-
+        train_loader, val_loader = self.init_dataset(label_df, val_df, **kwargs)
+        model, metric_fc, optimizer, scheduler = self.init_model(model, metric_fc, **kwargs)
         self.dump_config(self.model_path, kwargs)
         self.train(train_loader, val_loader, model, metric_fc, criterion, optimizer, scheduler, **kwargs)
 
@@ -46,36 +40,29 @@ class DualTorchPipeline():
             criterion = my_loss_mse
         elif loss_type == "my_cross_entropy":
             criterion = myCrossEntropyLoss
-
         cudnn.benchmark = True
         return criterion
 
-    def init_dataset(self, main_data_dir, batch_size, size, workers, reweight_sample = 1, reweight_sample_factor = 2, **kwargs):
-        # initialize dataset generators
-        dual_df = create_dual_label_df(main_data_dir = "../all_train_300", train_dir_list = ["full_train", "val"])
-        d1, d2 = split_dual_df(dual_df, p = 0.01, seed = 123)
-        train_gen, val_gen = initialize_dual_gen(d1, d2, size, batch_size, reweight_sample, reweight_sample_factor, workers)
-        return train_gen, val_gen
+    def init_dataset(self, label_df, val_df, size, batch_size, reweight_sample, reweight_sample_factor, workers, **kwargs):
+        train_loader, val_loader = initialize_dual_gen(label_df, val_df, size, batch_size, reweight_sample, reweight_sample_factor, workers)
+        # train_loader, val_loader = initialize_multi_gen(label_df, val_df, size, batch_size, reweight_sample, reweight_sample_factor, workers)
+        return train_loader, val_loader 
 
-    def init_model(self, model_type, metric_type, num_ftr, num_classes, optimizer_type, opt_kwargs, scheduler_type, scheduler_kwargs, model_kwargs = {}, **kwargs):
+    def init_model(self, model, metric_fc, model_type, metric_type, num_ftr, num_classes, optimizer_type, opt_kwargs, scheduler_type, scheduler_kwargs, model_kwargs = {}, **kwargs):
         # create model
-        model = select_model(model_type = model_type, model_kwargs = model_kwargs)
-        metric_fc = select_metric(metric = metric_type, num_ftr = num_ftr, num_classes = num_classes)
+        if model is None and metric_fc is None:
+            model = select_model(model_type = model_type, model_kwargs = model_kwargs)
+            metric_fc = select_metric(metric = metric_type, num_ftr = num_ftr, num_classes = num_classes)
+
         optimizer = select_optimizer(type = optimizer_type, model = model, kwargs = opt_kwargs)
         scheduler = select_scheduler(optimizer, scheduler_type = scheduler_type, scheduler_kwargs = scheduler_kwargs)
         return model, metric_fc, optimizer, scheduler
 
-    def init_retrain(self, model, metric_fc, premodel_path, premetric_path, **kwargs):
-        # premodel_path = "./torch_models/xception_d400_force_v1_v09/best_avg_acc_model.pth"
-        # premetric_path = "./torch_models/xception_d400_force_v1_v09/best_avg_acc_metric_fc.pth"
-        model.load_state_dict(torch.load(premodel_path))
-        metric_fc.load_state_dict(torch.load(premetric_path))
-        return model, metric_fc
-    
     def train(self, train_loader, val_loader, model, metric_fc, criterion, optimizer, scheduler, epochs, metric_type, batch_multiplier = 1, **kwargs):
         model_path, log_path = self.model_path, self.log_path
        
         # iterate training
+        ip = patience = kwargs.get("patience")
         best_loss = float('inf')
         best_acc = 0
         best_avg_acc = 0
@@ -108,6 +95,7 @@ class DualTorchPipeline():
                 torch.save(metric_fc.state_dict(), f'{model_path}/metric_fc.pth')
                 best_loss = val_log['loss']
                 print("=> saved best model by best loss")
+                ip = patience 
 
             if val_log['acc_'] > best_acc:
                 torch.save(model.state_dict(), f'{model_path}/best_acc_model.pth')
@@ -120,8 +108,24 @@ class DualTorchPipeline():
                 torch.save(metric_fc.state_dict(), f'{model_path}/best_avg_acc_metric_fc.pth')
                 best_avg_acc = val_log['avg_acc_']
                 print("=> saved best model by best avg acc")
+            
+            ip -= 1
+            if ip < 0:
+                print("Early stopping...")
+                break
+
+            if val_log['avg_acc_'] > 95:
+                print("val kappa above 95")
+                break
+            
+        self.model = model
+        self.metric_fc = metric_fc
+        # torch.save(model.state_dict(), f'{model_path}/last_model.pth')
+        # torch.save(metric_fc.state_dict(), f'{model_path}/last_metric.pth')
 
     def dump_config(self, model_path, kwargs):
         output_path = os.path.join(model_path, "config.yaml")
         dump_config(output_path, kwargs)
-            
+
+    def get_model(self):
+        return self.model, self.metric_fc 
