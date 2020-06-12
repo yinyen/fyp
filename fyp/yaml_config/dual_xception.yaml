@@ -1,4 +1,4 @@
-train_name: dual_xception_higherlr
+train_name: dual_xception_higherlr_
 
 # RETRAIN
 retrain: 1

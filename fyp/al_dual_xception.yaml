@@ -10,8 +10,8 @@ train_dir: full_train
 max_steps: 50
 
 # active learning parameters
-m: 100 # start
-n: 25  # step sampling
+m: 500 # start
+n: 100  # step sampling
 outlier: 0.01
 # to vary:
 
@@ -19,7 +19,7 @@ outlier: 0.01
 workers: 8
 size: 400
 reweight_sample: 1 #-1 #resample limited label images to 1k images with oversampling
-reweight_sample_factor: 10 # change to factor
+reweight_sample_factor: 2 # change to factor
 
 # model
 model_type: dual_xception
