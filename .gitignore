@@ -12,3 +12,5 @@ fyp/.ipynb_checkpoints/extract_torch_features-checkpoint.py
 fyp/.ipynb_checkpoints/preprocess_img-checkpoint.ipynb
 fyp/.ipynb_checkpoints/torch_transform-checkpoint.ipynb
 fyp/AL/*
+fyp/.ipynb_checkpoints/dual-checkpoint.ipynb
+fyp/.ipynb_checkpoints/evaluate_torch-checkpoint.py

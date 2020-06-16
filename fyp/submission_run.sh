@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=1 python submission_evaluation_dual.py
