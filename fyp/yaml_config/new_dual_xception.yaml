@@ -1,4 +1,4 @@
-train_name: new_small_dual_xception_400_v6mp
+train_name: new_small_dual_xception_400_v7mp
 
 # RETRAIN
 retrain: 0
@@ -17,7 +17,8 @@ reweight_sample_factor: 2
 epochs: 200
 
 # loss_type: cross_entropy
-loss_type: my_cross_entropy
+# loss_type: my_cross_entropy
+loss_type: smoothl1loss
 model_type: new_small_dual_xception
 model_kwargs:
   num_ftrs: 1000
@@ -32,7 +33,7 @@ qk_patience: 20
 
 optimizer_type: AdamW
 opt_kwargs:
-  lr: 0.0001
+  lr: 0.0002
   weight_decay: 0.000025
 
 # optimizer_type: SGD

@@ -47,6 +47,8 @@ class DualPipeline():
             criterion = my_loss_mse
         elif loss_type == "my_cross_entropy":
             criterion = myCrossEntropyLoss
+        elif loss_type == "smoothl1loss":
+            criterion = nn.SmoothL1Loss().cuda()
 
         cudnn.benchmark = True
         return criterion

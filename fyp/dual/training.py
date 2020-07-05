@@ -57,10 +57,10 @@ def train(loader_data, model, criterion, optimizer, batch_multiplier = 1):
             optimizer.zero_grad()
             count = batch_multiplier
 
-        input1, input2, target = input1.cuda(), input2.cuda(), target.long().cuda() 
+        input1, input2, target = input1.cuda(), input2.cuda(), target.float().cuda() 
         output = model(input1, input2)
+        output = output.flatten()
         loss = criterion(output, target)
-
         if i == 0:
             initial_loss = loss.item()
         else: 
@@ -71,16 +71,16 @@ def train(loader_data, model, criterion, optimizer, batch_multiplier = 1):
         count -= 1
 
         # compute acc on the fly
-        acc1, = torch_accuracy(output, target, topk=(1,))
+        # acc1, = torch_accuracy(output, target, topk=(1,))
         losses.update(loss.item(), target.size(0))
-        acc1s.update(acc1.item(), target.size(0))
+        # acc1s.update(acc1.item(), target.size(0))
         
         # record predicted 
         # y_pred += output.argmax(axis = 1).tolist() # 5 neurons
         to_add = output.flatten().tolist()
-        to_add2 = [convert_pred(j) for j in to_add]
+        to_add2 = [int(convert_pred(j)) for j in to_add]
         y_pred += to_add2 # 1 continuous neuron
-        y_true += target.tolist()
+        y_true += target.int().tolist()
 
     print("loss_0: ", initial_loss, "loss_n:", last_loss)
     # optimizer.step() # update cnn weights
@@ -110,19 +110,20 @@ def validate(loader_data, model, criterion):
         y_pred = []
         y_true = []
         for i, (input1, input2, target) in tqdm(enumerate(loader_data), total=len(loader_data)):
-            input1, input2, target = input1.cuda(), input2.cuda(), target.long().cuda() 
+            input1, input2, target = input1.cuda(), input2.cuda(), target.float().cuda() 
             output = model(input1, input2)
+            output = output.flatten()
             loss = criterion(output, target)
 
-            acc1, = torch_accuracy(output, target, topk=(1,))
+            # acc1, = torch_accuracy(output, target, topk=(1,))
             losses.update(loss.item(), target.size(0))
-            acc1s.update(acc1.item(), target.size(0))
+            # acc1s.update(acc1.item(), target.size(0))
 
             # y_pred += output.argmax(axis = 1).tolist() # 5 neurons
             to_add = output.flatten().tolist()
-            to_add2 = [convert_pred(j) for j in to_add]
+            to_add2 = [int(convert_pred(j)) for j in to_add]
             y_pred += to_add2 # 1 continuous neuron
-            y_true += target.tolist()
+            y_true += target.int().tolist()
             
         y_true = np.array(y_true)
         y_pred = np.array(y_pred)
@@ -131,7 +132,7 @@ def validate(loader_data, model, criterion):
         print("true:", y_true)
         print("pred:", y_pred)
         count_unique(y_pred)
-        
+
         accuracy_val = metrics.accuracy_score(y_true, y_pred)*100
         avg_acc_val = avg_acc(y_true, y_pred)*100
         qk = quadratic_kappa(y_true, y_pred)*100

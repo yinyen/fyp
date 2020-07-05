@@ -95,7 +95,7 @@ class NewSmallXception(nn.Module):
         return x
 
     def logits(self, features):
-        x = nn.ReLU(inplace=True)(features)
+        x = nn.LeakyReLU(inplace=True)(features)
         x = F.adaptive_avg_pool2d(x, (1, 1))
         x = x.view(x.size(0), -1)
         x = self.fc(x)
