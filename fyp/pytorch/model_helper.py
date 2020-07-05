@@ -9,7 +9,9 @@ from torchvision import models
 from torch.optim import lr_scheduler
 import pytorch.metrics as metrics
 from pytorch.xception import xception
-from pytorch.dual_xception import dual_xception
+from pytorch.dual_xception import dual_xception, small_dual_xception
+from dual.model_new_dual_xception import new_small_dual_xception
+
 
 def select_model(model_type, model_kwargs):
     pretrained = model_kwargs.get("pretrained")
@@ -36,6 +38,10 @@ def select_model(model_type, model_kwargs):
         model = models.vgg11_bn(pretrained=pretrained) 
     elif model_type == "dual_xception":
         model = dual_xception() 
+    elif model_type == "small_dual_xception":
+        model = small_dual_xception() 
+    elif model_type == "new_small_dual_xception":
+        model = new_small_dual_xception(**model_kwargs) 
         
     model = model.cuda()
     return model

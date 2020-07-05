@@ -253,7 +253,7 @@ def dual_xception(num_classes=1000, pretrained=False):
     
 
     # model = UNet(3, 10)
-    init_all(model, torch.nn.init.normal_, mean=0., std=0.1) 
+    init_all(model, torch.nn.init.normal_, mean=0., std=0.0001) 
     # init_all(model, torch.nn.init.kaiming_normal) 
 
     del model.fc
@@ -377,3 +377,123 @@ class Xception2(nn.Module):
         x = self.relu31(x)
 
         return x
+
+
+    
+
+class SmallDualXception(nn.Module):
+    """
+    Xception optimized for the ImageNet dataset, as specified in
+    https://arxiv.org/pdf/1610.02357.pdf
+    """
+    def __init__(self, num_classes=1000):
+        """ Constructor
+        Args:
+            num_classes: number of classes
+        """
+        super(SmallDualXception, self).__init__()
+        self.num_classes = num_classes
+
+        self.conv1 = nn.Conv2d(3, 32, 3,2, 0, bias=False)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.relu1 = nn.ReLU(inplace=True)
+
+        self.conv2 = nn.Conv2d(32,64,3,bias=False)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.relu2 = nn.ReLU(inplace=True)
+        #do relu here
+
+        self.block1=Block(64,128,2,2,start_with_relu=False,grow_first=True)
+        self.block2=Block(128,256,2,2,start_with_relu=True,grow_first=True)
+        self.block3=Block(256,728,2,2,start_with_relu=True,grow_first=True)
+
+        self.block4=Block(728,728,3,1,start_with_relu=True,grow_first=True)
+        self.block5=Block(728,728,3,1,start_with_relu=True,grow_first=True)
+        self.block6=Block(728,728,3,1,start_with_relu=True,grow_first=True)
+        self.block7=Block(728,728,3,1,start_with_relu=True,grow_first=True)
+
+        self.block8=Block(728,728,3,1,start_with_relu=True,grow_first=True)
+        self.block9=Block(728,728,3,1,start_with_relu=True,grow_first=True)
+        self.block10=Block(728,728,3,1,start_with_relu=True,grow_first=True)
+        self.block11=Block(728,728,3,1,start_with_relu=True,grow_first=True)
+
+        self.block12=Block(728,1024,2,2,start_with_relu=True,grow_first=False)
+
+        self.conv3 = SeparableConv2d(1024,1536,3,1,1)
+        self.conv3b = SeparableConv2d(728,1536,3,1,1)
+        self.bn3 = nn.BatchNorm2d(1536)
+        self.relu3 = nn.ReLU(inplace=True)
+
+        #do relu here
+        self.conv4 = SeparableConv2d(1536,2048,3,1,1)
+        self.bn4 = nn.BatchNorm2d(2048)
+
+        self.fc = nn.Linear(2048, num_classes)
+        self.fc2 = nn.Linear(2000, 3000)
+        self.relu21 = nn.ReLU(inplace=True)
+        self.fc3 = nn.Linear(3000, 1000)
+        self.relu31 = nn.ReLU(inplace=True)
+
+        self.fc = nn.Linear(2048, num_classes)
+
+        # #------- init weights --------
+        # for m in self.modules():
+        #     if isinstance(m, nn.Conv2d):
+        #         n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+        #         m.weight.data.normal_(0, math.sqrt(2. / n))
+        #     elif isinstance(m, nn.BatchNorm2d):
+        #         m.weight.data.fill_(1)
+        #         m.bias.data.zero_()
+        # #-----------------------------
+
+    def features(self, input):
+        x = self.conv1(input)
+        x = self.bn1(x)
+        x = self.relu1(x)
+
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.relu2(x)
+
+        x = self.block1(x)
+        x = self.block2(x)
+        x = self.block3(x)
+        
+        x = self.conv3b(x)
+        x = self.bn3(x)
+        x = self.relu3(x)
+
+        x = self.conv4(x)
+        x = self.bn4(x)
+        return x
+
+    def logits(self, features):
+        x = nn.ReLU(inplace=True)(features)
+
+        x = F.adaptive_avg_pool2d(x, (1, 1))
+        x = x.view(x.size(0), -1)
+        x = self.last_linear(x)
+        return x
+
+    def forward(self, input1, input2):
+        self.last_linear = self.fc
+
+        x = self.features(input1)
+        x = self.logits(x)
+        x2 = self.features(input2)
+        x2 = self.logits(x2)
+
+        x_list = [x, x2]
+        x = torch.cat(x_list, dim = 1)
+        x = self.fc2(x)
+        x = self.relu21(x)
+        x = self.fc3(x)
+        x = self.relu31(x)
+        return x
+
+
+def small_dual_xception(num_classes=1000, pretrained = None):
+    model = SmallDualXception(num_classes=num_classes)
+    init_all(model, torch.nn.init.normal_, mean=0., std=0.1) 
+    # del model.fc
+    return model

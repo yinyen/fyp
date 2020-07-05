@@ -58,10 +58,37 @@ def asm2(A):
     
 
 def myCrossEntropyLoss(outputs, labels):
-    batch_size = outputs.size()[0]            # batch_size
-    outputs = F.log_softmax(outputs, dim=1)   # compute the log of softmax values
-    outputs = outputs[range(batch_size), labels] # pick the values corresponding to the labels
-    return -torch.sum(outputs)/batch_size
+    k0, k1, k2 = 2.0, 5, 0.5
+    eps = 1e-12
+    minn, maxx = 0,4
+    out1 = torch.flatten(outputs)
+    # out = torch.clamp(out1, minn, maxx) 
+    out = out1
+    # print(out1)
+    # print(outputs)
+    # print(out)
+    # print(labels)
+    loss1 = (out-labels+eps).abs().pow(k0)
+    loss2 = (5-out).abs().pow(1/k1)
+    loss3 = (1+labels.type(torch.float32)).pow(k2)
+    # print(loss1)
+    # print(loss2)
+    # print(loss3)
+
+    loss_agg = loss1*loss2*loss3
+    # loss_agg = loss1
+    
+    # loss1 = loss1.type(torch.float32)
+
+    loss = torch.mean(loss_agg)
+
+    # print(loss)
+    return loss
+    # batch_size = outputs.size()[0]            # batch_size
+    # outputs = F.log_softmax(outputs, dim=1)   # compute the log of softmax values
+    # outputs = outputs[range(batch_size), labels] # pick the values corresponding to the labels
+
+    # return -torch.sum(outputs)/batch_size
 
 def myCrossEntropyLoss2(outputs, labels):
     batch_size = outputs.size()[0]            # batch_size

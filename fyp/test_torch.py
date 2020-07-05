@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-
+from torch import nn
 
 def soft_arg_max(A, mask, beta=10, dim=1, epsilon=1e-12):
     '''
@@ -32,13 +32,20 @@ def asm(A):
     return torch.matmul(A_softmax, indices)
 
 
-m = torch.nn.Softmax(dim=1)
-input = torch.randn(2, 3).cuda()
-print(input)
+# m = torch.nn.Softmax(dim=1)
+# input = torch.randn(2, 3).cuda()
+# print(input)
 
-d = asm(input)
-print("++++++++++++++++++")
-print(d)
+# d = asm(input)
+# print("++++++++++++++++++")
+# print(d)
 
-output = F.log_softmax(input)
-print(output)
+# output = F.log_softmax(input)
+# print(output)
+
+m = nn.MaxPool2d(3, stride=2)
+# pool of non-square window
+# m = nn.MaxPool2d((3, 2), stride=(2, 2))
+input = torch.randn(20, 16, 50, 32)
+output = m(input)
+print(output.shape)

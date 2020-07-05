@@ -7,43 +7,45 @@ import joblib
 from collections import OrderedDict
 
 import torch
-import torch.backends.cudnn as cudnn
 import torch.nn as nn
+import torch.backends.cudnn as cudnn
 import torch.optim as optim
 from torch.optim import lr_scheduler
+
+from torchvision import models
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-from torchvision import models
-import adabound
-from custom_math.kappa import quadratic_kappa
 
-from pytorch.utils import torch_accuracy, AverageMeter
-from pytorch.utils import *
-from pytorch.mnist import archs
-import pytorch.metrics as metrics
-from pytorch.coslr import CosineAnnealingWarmUpRestarts
-from evaluate.metrics import avg_acc
 from sklearn import metrics
+from custom_math.kappa import quadratic_kappa
+from evaluate.metrics import avg_acc
+from pytorch.utils import torch_accuracy, AverageMeter
 
-def logging(loss_avg, acc1_avg, avg_acc_val):
-    log = OrderedDict([
-        ('loss', loss_avg),
-        ('acc_', acc1_avg),
-        ('avg_acc_', avg_acc_val*100),
-    ])
-    return log
+def count_unique(x):
+    for j in np.unique(x):
+        y = np.sum(x == j)
+        print("Count {}: {}".format(j, y))
 
+def convert_pred(x):
+    if x < 0.5:
+        return 0 
+    elif x < 1.5:
+        return 1
+    elif x < 2.5:
+        return 2
+    elif x < 3.5:
+        return 3
+    else:
+        return 4 
 
-def train(loader_data, model, metric_fc, criterion, optimizer, metric = "not_softmax", batch_multiplier = 1):
+def train(loader_data, model, criterion, optimizer, batch_multiplier = 1):
     losses = AverageMeter()
     acc1s = AverageMeter()
 
     # switch to training mode
     model.train()
-    metric_fc.train()
 
     # training
-    # loss, avg_acc_val = training_iterate(train_loader, model, metric_fc, criterion, losses, acc1s, metric)
     y_pred = []
     y_true = []
     count = 0
@@ -56,13 +58,9 @@ def train(loader_data, model, metric_fc, criterion, optimizer, metric = "not_sof
             count = batch_multiplier
 
         input1, input2, target = input1.cuda(), input2.cuda(), target.long().cuda() 
-        feature = model(input1, input2)
-        if metric == 'softmax':
-            output = metric_fc(feature)
-        else:
-            output = metric_fc(feature, target)
-
+        output = model(input1, input2)
         loss = criterion(output, target)
+
         if i == 0:
             initial_loss = loss.item()
         else: 
@@ -77,8 +75,11 @@ def train(loader_data, model, metric_fc, criterion, optimizer, metric = "not_sof
         losses.update(loss.item(), target.size(0))
         acc1s.update(acc1.item(), target.size(0))
         
-        # record predicted
-        y_pred += output.argmax(axis = 1).tolist()
+        # record predicted 
+        # y_pred += output.argmax(axis = 1).tolist() # 5 neurons
+        to_add = output.flatten().tolist()
+        to_add2 = [convert_pred(j) for j in to_add]
+        y_pred += to_add2 # 1 continuous neuron
         y_true += target.tolist()
 
     print("loss_0: ", initial_loss, "loss_n:", last_loss)
@@ -89,73 +90,84 @@ def train(loader_data, model, metric_fc, criterion, optimizer, metric = "not_sof
     y_pred = np.array(y_pred)
 
     # calculate metrics using standard sklearn metrics
-    # avg_acc_val = avg_acc(y_true, y_pred)   
-    accuracy_val = metrics.accuracy_score(y_true, y_pred)
-    qk = quadratic_kappa(y_true, y_pred)
+    accuracy_val = metrics.accuracy_score(y_true, y_pred)*100
+    avg_acc_val = avg_acc(y_true, y_pred)*100
+    qk = quadratic_kappa(y_true, y_pred)*100
     
     # log performance metrics
-    log = logging(losses.avg, acc1s.avg, qk)
+    log = {"qk": qk, "loss": losses.avg, "acc": accuracy_val, "avg_acc": avg_acc_val}
     return log
 
 
-def validate(loader_data, model, metric_fc, criterion, metric = "not_softmax"):
-
+def validate(loader_data, model, criterion):
     losses = AverageMeter()
     acc1s = AverageMeter()
 
     # switch to evaluate mode
     model.eval()
-    metric_fc.eval()
 
     with torch.no_grad():
         y_pred = []
         y_true = []
         for i, (input1, input2, target) in tqdm(enumerate(loader_data), total=len(loader_data)):
             input1, input2, target = input1.cuda(), input2.cuda(), target.long().cuda() 
-            feature = model(input1, input2)
-            
-            if metric == 'softmax':
-                output = metric_fc(feature)
-            else:
-                output = metric_fc(feature, target)
+            output = model(input1, input2)
             loss = criterion(output, target)
 
             acc1, = torch_accuracy(output, target, topk=(1,))
             losses.update(loss.item(), target.size(0))
             acc1s.update(acc1.item(), target.size(0))
 
-            y_pred += output.argmax(axis = 1).tolist()
+            # y_pred += output.argmax(axis = 1).tolist() # 5 neurons
+            to_add = output.flatten().tolist()
+            to_add2 = [convert_pred(j) for j in to_add]
+            y_pred += to_add2 # 1 continuous neuron
             y_true += target.tolist()
             
         y_true = np.array(y_true)
         y_pred = np.array(y_pred)
-        # avg_acc_val = avg_acc(y_true, y_pred)   
-        qk = quadratic_kappa(y_true, y_pred)
-        # loss, avg_acc_val = training_iterate(val_loader, model, metric_fc, criterion, losses, acc1s, metric)
-    
+
+        # calculate metrics using standard sklearn metrics
+        print("true:", y_true)
+        print("pred:", y_pred)
+        count_unique(y_pred)
+        
+        accuracy_val = metrics.accuracy_score(y_true, y_pred)*100
+        avg_acc_val = avg_acc(y_true, y_pred)*100
+        qk = quadratic_kappa(y_true, y_pred)*100
+
     # log performance metrics
-    log = logging(losses.avg, acc1s.avg, qk)
+    log = {"qk": qk, "loss": losses.avg, "acc": accuracy_val, "avg_acc": avg_acc_val}
     return log
 
 
 class PerformanceLog():
     def __init__(self):
-        self.log = pd.DataFrame(index=[], columns=[
-            'epoch', 'lr', 'train_loss', 'train_acc', 'train_avg_acc', 
-            'val_loss', 'val_acc', 'val_avg_acc',
-            'test_loss', 'test_acc', 'test_avg_acc',
-        ])
+        self.log = pd.DataFrame()
 
     def append(self, epoch, lr, train_log, val_log, test_log):
-        tmp = pd.Series([
-            epoch,
-            lr,
-            train_log['loss'], train_log['acc_'], train_log['avg_acc_'],
-            val_log['loss'], val_log['acc_'], val_log['avg_acc_'], 
-            test_log['loss'], test_log['acc_'], test_log['avg_acc_']
-        ], index=['epoch', 'lr', 'train_loss', 'train_acc', 'train_avg_acc',
-                    'val_loss', 'val_acc', 'val_avg_acc',
-                    'test_loss', 'test_acc', 'test_avg_acc'])
+        train_log = train_log.copy()
+        val_log = val_log.copy()
+        test_log = test_log.copy()
+
+        new_keys = [("train_" + key, key) for key in train_log.keys()]
+        for new_key, key in new_keys:
+            train_log[new_key] = train_log.pop(key)
+
+        new_keys = [("val_" + key, key) for key in val_log.keys()]
+        for new_key, key in new_keys:
+            val_log[new_key] = val_log.pop(key)
+
+        new_keys = [("test_" + key, key) for key in test_log.keys()]
+        for new_key, key in new_keys:
+            test_log[new_key] = test_log.pop(key)
+
+        full_log = {**train_log, **val_log, **test_log}
+        full_log["epoch"] = epoch
+        full_log["lr"] = lr
+        # print(full_log)
+
+        tmp = pd.Series(full_log)
         self.log = self.log.append(tmp, ignore_index=True)
 
     def save(self, path):

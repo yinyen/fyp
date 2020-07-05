@@ -6,7 +6,8 @@ def quadratic_kappa(actuals, preds, N=5, silent = 1):
     at Kaggle. It returns the Quadratic Weighted Kappa metric score between the actual and the predicted values 
     of adoption rating."""
     try:
-        
+        # print(actuals)
+        # print(preds)
         w = np.zeros((N,N))
         O = confusion_matrix(actuals, preds)
         if not silent:
@@ -36,7 +37,8 @@ def quadratic_kappa(actuals, preds, N=5, silent = 1):
             for j in range(len(w)):
                 num+=w[i][j]*O[i][j]
                 den+=w[i][j]*E[i][j]
-        return (1 - (num/den))
+        qk_val = (1 - (num/den))
+        return qk_val
     except:
         return -1
 
