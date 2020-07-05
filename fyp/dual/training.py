@@ -18,13 +18,14 @@ import torchvision.datasets as datasets
 
 from sklearn import metrics
 from custom_math.kappa import quadratic_kappa
-from evaluate.metrics import avg_acc
+from evaluate.metrics import avg_acc, get_cm
 from pytorch.utils import torch_accuracy, AverageMeter
 
-def count_unique(x):
+def count_unique(x, x2):
     for j in np.unique(x):
         y = np.sum(x == j)
-        print("Count {}: {}".format(j, y))
+        y2 = np.sum(x2 == j)
+        print("Count {}: actual, pred - {}, {}".format(j, y, y2))
 
 def convert_pred(x):
     if x < 0.5:
@@ -131,7 +132,9 @@ def validate(loader_data, model, criterion):
         # calculate metrics using standard sklearn metrics
         print("true:", y_true)
         print("pred:", y_pred)
-        count_unique(y_pred)
+        cm = get_cm(y_true, y_pred)
+        print("val_cm:", cm)
+        count_unique(y_true, y_pred)
 
         accuracy_val = metrics.accuracy_score(y_true, y_pred)*100
         avg_acc_val = avg_acc(y_true, y_pred)*100

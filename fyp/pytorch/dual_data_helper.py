@@ -135,13 +135,22 @@ class DualImgDataset(Dataset):
 def initialize_dual_gen(train_label_df, val_label_df, size, batch_size, reweight_sample = -1, reweight_sample_factor = 1, workers = 4):
     transform_train = transforms.Compose([
             transforms.Resize((size, size)),
-            transforms.RandomRotation(180),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor()
+            transforms.RandomAffine(
+                degrees=(-180,180),
+                scale=(0.8889, 1.0),
+                shear=(-36,36)
+            ),
+            # transforms.RandomRotation(180),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.5),
+            transforms.ColorJitter(contrast=(0.9,1.1)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
     transform_val = transforms.Compose([
             transforms.Resize((size, size)),
-            transforms.ToTensor()
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
 
     train_set = DualImgDataset(train_label_df, transform_train)
