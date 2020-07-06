@@ -43,9 +43,15 @@ def asm(A):
 # output = F.log_softmax(input)
 # print(output)
 
-m = nn.MaxPool2d(3, stride=2)
-# pool of non-square window
-# m = nn.MaxPool2d((3, 2), stride=(2, 2))
-input = torch.randn(20, 16, 50, 32)
-output = m(input)
-print(output.shape)
+# m = nn.MaxPool2d(3, stride=2)
+# # pool of non-square window
+# # m = nn.MaxPool2d((3, 2), stride=(2, 2))
+# input = torch.randn(20, 16, 50, 32)
+# output = m(input)
+# print(output.shape)
+
+import torch
+model = torch.hub.load('pytorch/vision:v0.6.0', 'resnext50_32x4d', pretrained=True)
+
+model.fc = nn.Linear(2048, 5)
+print(model)

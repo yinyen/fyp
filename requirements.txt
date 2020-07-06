@@ -1,0 +1,13 @@
+torch
+torchvision
+PyYAML
+numpy 
+pandas 
+scikit-learn
+tqdm
+adabound
+scikit-image
+opencv-python
+jupyterlab
+PyYAML
+

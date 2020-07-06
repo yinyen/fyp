@@ -21,11 +21,13 @@ from custom_math.kappa import quadratic_kappa
 from evaluate.metrics import avg_acc, get_cm
 from pytorch.utils import torch_accuracy, AverageMeter
 
+
 def count_unique(x, x2):
     for j in np.unique(x):
         y = np.sum(x == j)
         y2 = np.sum(x2 == j)
         print("Count {}: actual, pred - {}, {}".format(j, y, y2))
+
 
 def convert_pred(x):
     if x < 0.5:
@@ -39,7 +41,8 @@ def convert_pred(x):
     else:
         return 4 
 
-def train(loader_data, model, criterion, optimizer, batch_multiplier = 1):
+
+def train(loader_data, model, criterion, optimizer, batch_multiplier = 1, single_mode = 0):
     losses = AverageMeter()
     acc1s = AverageMeter()
 
@@ -59,7 +62,12 @@ def train(loader_data, model, criterion, optimizer, batch_multiplier = 1):
             count = batch_multiplier
 
         input1, input2, target = input1.cuda(), input2.cuda(), target.float().cuda() 
-        output = model(input1, input2)
+
+        if single_mode:
+            output = model(input1)
+        else:
+            output = model(input1, input2)
+
         output = output.flatten()
         loss = criterion(output, target)
         if i == 0:
@@ -100,7 +108,7 @@ def train(loader_data, model, criterion, optimizer, batch_multiplier = 1):
     return log
 
 
-def validate(loader_data, model, criterion):
+def validate(loader_data, model, criterion, single_mode = 0):
     losses = AverageMeter()
     acc1s = AverageMeter()
 
@@ -112,7 +120,12 @@ def validate(loader_data, model, criterion):
         y_true = []
         for i, (input1, input2, target) in tqdm(enumerate(loader_data), total=len(loader_data)):
             input1, input2, target = input1.cuda(), input2.cuda(), target.float().cuda() 
-            output = model(input1, input2)
+            
+            if single_mode:
+                output = model(input1)
+            else:
+                output = model(input1, input2)
+
             output = output.flatten()
             loss = criterion(output, target)
 

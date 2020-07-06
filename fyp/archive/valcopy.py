@@ -4,10 +4,9 @@ import time
 import os
 import glob
 import shutil
-from preprocessing.load import get_label_from_filename
 import random
-TRAIN_DIR = "../all_train/train"
-VAL_DIR = "../all_train/val"
+TRAIN_DIR = "../all_train_300/full_train"
+VAL_DIR = "../all_train_300/val"
 
 p = 0.2
 os.makedirs(VAL_DIR, exist_ok=True)

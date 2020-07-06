@@ -1,10 +1,10 @@
 # Init active learning
 train_name: dual_active_learning
-style: yy
+style: random
 
 # root_dir: "AL"
-root_dir: "/media/workstation/Storage/Test/Dual_AL"
-main_dir: "dual_al_test"
+root_dir: "./Dual_AL"
+main_dir: "dual_al_random"
 main_data_dir: ../all_train_300
 train_dir: full_train
 
