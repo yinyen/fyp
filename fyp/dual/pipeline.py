@@ -55,7 +55,8 @@ class DualPipeline():
 
     def init_dataset(self, main_data_dir, batch_size, size, workers, reweight_sample = 1, reweight_sample_factor = 2, **kwargs):
         # initialize dataset generators
-        dual_df = create_dual_label_df(main_data_dir = "../all_train_300", train_dir_list = ["full_train", "val"])
+        # dual_df = create_dual_label_df(main_data_dir = "../all_train_300", train_dir_list = ["full_train", "val"])
+        dual_df = create_dual_label_df(main_data_dir = "../all_train", train_dir_list = ["train", "val"])
         d1, d_train = split_dual_df(dual_df, p = 0.05, seed = 321) # use 20k*0.05 = 1k samples for training
         d1_, d_val = split_dual_df(d1, p = 0.05, seed = 321) # use 20k*0.05 = 1k samples for val
         print("Train:", d_train.shape, "Val:", d_val.shape)

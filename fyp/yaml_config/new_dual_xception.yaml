@@ -14,7 +14,7 @@ batch_multiplier: 15
 reweight_sample: -1
 reweight_sample_factor: 2
 
-epochs: 200
+epochs: 60
 
 # loss_type: cross_entropy
 # loss_type: my_cross_entropy
@@ -52,9 +52,9 @@ opt_kwargs:
 
 scheduler_type: CosineAnnealingLR
 scheduler_kwargs:
-  T_max: 200
+  T_max: 60
   # eta_min: 0.000005
-  eta_min: 0.0001
+  eta_min: 0.00002
 
 # https://www.fast.ai/2018/07/02/adam-weight-decay/#implementing-adamw
 # adamw with onecycle

@@ -70,7 +70,7 @@ def split_dual_df(dual_df, p = 0.2, seed = 123):
     d1 = dual_df.drop(d2.index)
     return d1, d2 # train, val
 
-def open_image(img_name, transform_1 = False, transform_2 = True):
+def open_image(img_name, transform_1 = False, transform_2 = False):
     image2 = Image.open(img_name)
     try:
         if transform_2:
@@ -81,6 +81,8 @@ def open_image(img_name, transform_1 = False, transform_2 = True):
             delta_h = desired_size - new_size[1]
             padding = (delta_w//2, delta_h//2, delta_w-(delta_w//2), delta_h-(delta_h//2))
             new_im = ImageOps.expand(image2, padding)
+        else:
+            new_im = image2
     except:
         new_im = image2
     return new_im
