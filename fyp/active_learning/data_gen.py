@@ -12,14 +12,18 @@ from PIL import Image, ImageOps
 from PIL import Image
 
 def open_image(img_name, transform = True):
-    image2 = Image.open(img_name)
-    new_size = image2.size
-    max_size = max(image2.size)
-    desired_size = max_size
-    delta_w = desired_size - new_size[0]
-    delta_h = desired_size - new_size[1]
-    padding = (delta_w//2, delta_h//2, delta_w-(delta_w//2), delta_h-(delta_h//2))
-    new_im = ImageOps.expand(image2, padding)
+    try:
+        image2 = Image.open(img_name)
+        new_size = image2.size
+        max_size = max(image2.size)
+        desired_size = max_size
+        delta_w = desired_size - new_size[0]
+        delta_h = desired_size - new_size[1]
+        padding = (delta_w//2, delta_h//2, delta_w-(delta_w//2), delta_h-(delta_h//2))
+        new_im = ImageOps.expand(image2, padding)
+    except:
+        image2 = Image.open(img_name)
+        new_im = image2
     return new_im
 
 
