@@ -28,13 +28,16 @@ def transform_img(img, func):
 
 def pad_to_square(image2):
     '''pad image to make image square'''
-    new_size = image2.size
-    max_size = max(image2.size)
-    desired_size = max_size
-    delta_w = desired_size - new_size[0]
-    delta_h = desired_size - new_size[1]
-    padding = (delta_w//2, delta_h//2, delta_w-(delta_w//2), delta_h-(delta_h//2))
-    new_im = ImageOps.expand(image2, padding)
+    try:
+        new_size = image2.size
+        max_size = max(image2.size)
+        desired_size = max_size
+        delta_w = desired_size - new_size[0]
+        delta_h = desired_size - new_size[1]
+        padding = (delta_w//2, delta_h//2, delta_w-(delta_w//2), delta_h-(delta_h//2))
+        new_im = ImageOps.expand(image2, padding)
+    except:
+        new_im = image2
     return new_im
 
 
@@ -71,13 +74,16 @@ def remove_border_1(img):
 
 
 def resize(img, size):
-    x = np.array(img)
-    z = x[x.shape[0] // 2, :, :].sum(1)
-    r = (z > z.mean() / 10).sum() / 2
-    s = size * 1.0 / (2*r)
-    x = cv2.resize(x, (0,0), fx = s , fy = s)
-    im = Image.fromarray(x)
-    return im
+    try:
+        x = np.array(img)
+        z = x[x.shape[0] // 2, :, :].sum(1)
+        r = (z > z.mean() / 10).sum() / 2
+        s = size * 1.0 / (2*r)
+        x = cv2.resize(x, (0,0), fx = s , fy = s)
+        im = Image.fromarray(x)
+        return im
+    except:
+        return img
 
 
 def load_transform_image(img_name, size):

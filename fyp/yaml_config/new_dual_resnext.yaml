@@ -4,9 +4,15 @@ train_name: new_single_resnext50_300
 retrain: 0
 premodel_path: torch_models/new_small_dual_xception_400_v3a_v13/best_qk_model.pth
 
-main_data_dir: ..
+# main_data_dir: ..
+# train_dir_list: 
+#   - all_train
+
+main_data_dir: ../all_train_300
 train_dir_list: 
-  - all_train
+  - full_train
+  - vall
+
 main_model_dir: torch_models
 workers: 8
 size: 300
