@@ -37,7 +37,7 @@ class DualPipeline():
         self.dump_config(self.model_path, kwargs)
         self.train(train_loader, val_loader, model, criterion, optimizer, scheduler, **kwargs)
 
-    def init_dataset(self, main_data_dir, train_dir_list, batch_size, size, workers, reweight_sample = 1, reweight_sample_factor = 2, single_mode = 0, **kwargs):
+    def init_dataset(self, main_data_dir, train_dir_list, batch_size, size, workers, reweight_sample = 1, reweight_sample_factor = 2, single_mode = 0, load_only = 0, **kwargs):
         # initialize dataset generators
         # dual_df = create_dual_label_df(main_data_dir = "../all_train_300", train_dir_list = ["full_train", "val"])
         # dual_df = create_dual_label_df(main_data_dir = "../all_train", train_dir_list = ["train", "val"])
@@ -45,7 +45,7 @@ class DualPipeline():
         d1, d_train = split_dual_df(dual_df, p = 0.05, seed = 321) # use 20k*0.05 = 1k samples for training
         d1_, d_val = split_dual_df(d1, p = 0.05, seed = 321) # use 20k*0.05 = 1k samples for val
         print("Train:", d_train.shape, "Val:", d_val.shape)
-        train_gen, val_gen = initialize_dual_gen(d_train, d_val, size, batch_size, reweight_sample, reweight_sample_factor, workers, single_mode = 0) # force double image for now
+        train_gen, val_gen = initialize_dual_gen(d_train, d_val, size, batch_size, reweight_sample, reweight_sample_factor, workers, single_mode = 0, load_only = load_only) # force double image for now
         return train_gen, val_gen
 
     def init_model(self, model_type, optimizer_type, opt_kwargs, scheduler_type, scheduler_kwargs, model_kwargs = {}, **kwargs):

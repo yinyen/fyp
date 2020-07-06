@@ -10,7 +10,7 @@ from preprocessing.image_preprocess import load_transform_image
 
 
 class DualImgDataset(Dataset):
-    def __init__(self, df, size, transform=None, debug_return_5 = 0, single_mode = 0):
+    def __init__(self, df, size, transform=None, debug_return_5 = 0, single_mode = 0, load_only = 0):
         self.df = df.copy()
         self.transform = transform # pytorch transform
         
@@ -18,6 +18,7 @@ class DualImgDataset(Dataset):
         self.n = self.df.shape[0]
         self.size = size
 
+        self.load_only = load_only
         self.debug_return_5 = debug_return_5
         self.single_mode = single_mode
 
@@ -33,8 +34,8 @@ class DualImgDataset(Dataset):
         img_name_2 = self.df["files_y"].values[idx]
         label_1 = self.df["labels_x"].values[idx] 
         # label_2 = self.df["labels_y"].values[idx] 
-        image_1 = load_transform_image(img_name_1, self.size)
-        image_2 = load_transform_image(img_name_2, self.size)
+        image_1 = load_transform_image(img_name_1, self.size, self.load_only)
+        image_2 = load_transform_image(img_name_2, self.size, self.load_only)
 
         if self.transform:
             image_1 = self.transform(image_1)
@@ -49,7 +50,7 @@ class DualImgDataset(Dataset):
         return image_1, image_2, label_1
 
 
-def initialize_dual_gen(train_label_df, val_label_df, size, batch_size, reweight_sample = 0, reweight_sample_factor = 1, workers = 4, single_mode = 0):
+def initialize_dual_gen(train_label_df, val_label_df, size, batch_size, reweight_sample = 0, reweight_sample_factor = 1, workers = 4, single_mode = 0, load_only = 0):
     transform_train = transforms.Compose([
             transforms.Resize((size, size)),
             transforms.RandomAffine(
@@ -70,8 +71,8 @@ def initialize_dual_gen(train_label_df, val_label_df, size, batch_size, reweight
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
 
-    train_set = DualImgDataset(df=train_label_df, size=size, transform=transform_train, debug_return_5 = 0, single_mode = single_mode)
-    val_set = DualImgDataset(df=val_label_df, size=size, transform=transform_val, debug_return_5 = 0, single_mode = single_mode)
+    train_set = DualImgDataset(df=train_label_df, size=size, transform=transform_train, debug_return_5 = 0, single_mode = single_mode, load_only = load_only)
+    val_set = DualImgDataset(df=val_label_df, size=size, transform=transform_val, debug_return_5 = 0, single_mode = single_mode, load_only = load_only)
 
     if reweight_sample != 0:
         targets = np.array(train_set.targets)
@@ -100,6 +101,6 @@ def create_data_loader(df, size, batch_size = 6, workers = 4, debug_return_5 = 0
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
-    test_set = DualImgDataset(df=df, size=size, transform=transform_val, debug_return_5 = debug_return_5, single_mode = single_mode)  
+    test_set = DualImgDataset(df=df, size=size, transform=transform_val, debug_return_5 = debug_return_5, single_mode = single_mode, load_only = load_only)  
     test_gen = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=workers)
     return test_gen

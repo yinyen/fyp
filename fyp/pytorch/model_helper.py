@@ -47,6 +47,9 @@ def select_model(model_type, model_kwargs):
     elif model_type == "single_resnext50":
         model = torch.hub.load('pytorch/vision:v0.6.0', 'resnext50_32x4d', pretrained=True)
         model.fc = nn.Linear(2048, 1)
+    elif model_type == "single_resnext101":
+        model = torch.hub.load('pytorch/vision:v0.6.0', 'resnext101_32x8d', pretrained=True)
+        model.fc = nn.Linear(2048, 1)
         
     model = model.cuda()
     # print(model)

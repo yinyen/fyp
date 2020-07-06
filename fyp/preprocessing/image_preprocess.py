@@ -86,8 +86,10 @@ def resize(img, size):
         return img
 
 
-def load_transform_image(img_name, size):
+def load_transform_image(img_name, size, load_only = 0):
     image = open_image(img_name)
+    if load_only:
+        return image
     image = transform_img(image, remove_border_1)
     image = pad_to_square(image)
     image = resize(image, size)

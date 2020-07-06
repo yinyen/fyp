@@ -1,30 +1,31 @@
-train_name: new_single_resnext50_300
+train_name: new_single_resnext101_400
 
 # RETRAIN
 retrain: 0
 premodel_path: torch_models/new_small_dual_xception_400_v3a_v13/best_qk_model.pth
 
+# load_only: 0
 # main_data_dir: ..
 # train_dir_list: 
 #   - all_train
 
-main_data_dir: ../all_train_300
+load_only: 1
+main_data_dir: ..
 train_dir_list: 
-  - full_train
-  - vall
+  - new_all_train_400
 
 main_model_dir: torch_models
 workers: 8
-size: 300
-batch_size: 16
-batch_multiplier: 4
+size: 400
+batch_size: 6
+batch_multiplier: 10
 reweight_sample: 0
 reweight_sample_factor: 2
 single_mode: 1
 
 epochs: 60
 loss_type: smoothl1loss
-model_type: single_resnext50
+model_type: single_resnext101
 model_kwargs:
   num_ftrs: 1000
   num_classes: 1
