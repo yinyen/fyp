@@ -1,18 +1,18 @@
 # Active Learning Config
 al_config:
   train_name: dual_active_learning
-  style: ui # random
+  style: ui
   random_state: 123
 
   # root_dir: "AL"
   root_dir: "./torch_DualAL"
-  main_dir: "dual_al_ui" # dual_al_random
-  val_n_sample: 500 #500
-  max_steps: 25
+  main_dir: "dual_al_ui"
+  val_n_sample: 100 #500
+  max_steps: 50
 
   # active learning parameters
-  m: 200 # 200, start 200,100
-  n: 100  # 100, step sampling
+  m: 50 # 200, start 200,100
+  n: 50  # 100, step sampling
   outlier: 0.01
 
 # Model Config:
@@ -45,7 +45,7 @@ model_config:
     num_classes: 1
     use_init: kaiming
     limit_two: 1
-  qk_patience: 10 #10
+  qk_patience: 1 #10
 
   optimizer_type: AdamW
   opt_kwargs:
