@@ -95,7 +95,7 @@ def initialize_dual_gen(train_label_df, val_label_df, size, batch_size, reweight
     return train_gen, val_gen
 
 
-def create_data_loader(df, size, batch_size = 6, workers = 4, debug_return_5 = 0, single_mode = 0):
+def create_data_loader(df, size, batch_size = 6, workers = 4, debug_return_5 = 0, single_mode = 0, load_only = 0):
     transform_val = transforms.Compose([
             transforms.Resize((size, size)),
             transforms.ToTensor(),

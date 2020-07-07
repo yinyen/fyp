@@ -67,7 +67,10 @@ def create_dual_test_label_df(main_data_dir = "/media/workstation/Storage/Test/f
     return df
 
 
-def split_dual_df(dual_df, p = 0.2, seed = 123):
-    d2 = dual_df.sample(frac = p, random_state = seed)
+def split_dual_df(dual_df, p = 0.2, seed = 123, n = None):
+    if n is None:
+        d2 = dual_df.sample(frac = p, random_state = seed)
+    if p is None:
+        d2 = dual_df.sample(n = n, random_state = seed)
     d1 = dual_df.drop(d2.index)
     return d1, d2 # train, val

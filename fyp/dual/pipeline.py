@@ -15,7 +15,7 @@ from dual.training import train, validate, PerformanceLog
 
 
 class DualPipeline():
-    def __init__(self, gpu_device = 0, **kwargs):
+    def __init__(self, model = None, **kwargs):
         cudnn.benchmark = True
         
         train_name = kwargs.get("train_name")
@@ -29,7 +29,7 @@ class DualPipeline():
         print("=====================================")
 
         train_loader, val_loader = self.init_dataset(**kwargs)
-        model, optimizer, scheduler = self.init_model(**kwargs)
+        model, optimizer, scheduler = self.init_model(model, **kwargs)
         criterion = self.init_loss(**kwargs)
         if kwargs.get("retrain"):
             self.init_retrain(model, **kwargs)
@@ -48,9 +48,10 @@ class DualPipeline():
         train_gen, val_gen = initialize_dual_gen(d_train, d_val, size, batch_size, reweight_sample, reweight_sample_factor, workers, single_mode = 0, load_only = load_only) # force double image for now
         return train_gen, val_gen
 
-    def init_model(self, model_type, optimizer_type, opt_kwargs, scheduler_type, scheduler_kwargs, model_kwargs = {}, **kwargs):
+    def init_model(self, model, model_type, optimizer_type, opt_kwargs, scheduler_type, scheduler_kwargs, model_kwargs = {}, **kwargs):
         # create model
-        model = select_model(model_type = model_type, model_kwargs = model_kwargs)
+        if model is None:
+            model = select_model(model_type = model_type, model_kwargs = model_kwargs)
         optimizer = select_optimizer(type = optimizer_type, model = model, kwargs = opt_kwargs)
         scheduler = select_scheduler(optimizer, scheduler_type = scheduler_type, scheduler_kwargs = scheduler_kwargs)
         return model, optimizer, scheduler
@@ -102,7 +103,7 @@ class DualPipeline():
                 best_loss = val_log['loss']
                 print("=> saved best model by best loss", best_loss)
 
-            if val_log['qk'] > best_qk + 0.5:
+            if val_log['qk'] > best_qk:
                 torch.save(model.state_dict(), f'{model_path}/best_qk_model.pth')
                 best_qk = val_log['qk']
                 print("=> saved best model by best qk:", best_qk)
@@ -112,7 +113,16 @@ class DualPipeline():
             if pt < 0: 
                 print("Stop criteria met. QK did not improve by more than 0.5 of previous best ({:.4f}) after {} epochs".format(best_qk, qk_patience))
                 break
+        
+        model.load_state_dict(torch.load(f'{model_path}/best_qk_model.pth'))
+        self.model = model
+        self.best_model_path = f'{model_path}/best_qk_model.pth'
 
+    def get_model(self):
+        return self.model 
+
+    def get_best_model_path(self):
+        return self.best_model_path 
 
     def dump_config(self, model_path, kwargs):
         output_path = os.path.join(model_path, "config.yaml")

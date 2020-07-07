@@ -17,7 +17,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
 from sklearn import metrics
-from custom_math.kappa import quadratic_kappa
+from evaluate.kappa import quadratic_kappa
 from evaluate.metrics import avg_acc, get_cm
 from pytorch.utils import torch_accuracy, AverageMeter
 
