@@ -15,6 +15,7 @@ from active_learning.extract_features import extract_features, predict
 from active_learning.metrics import unfamiliarity_index
 from evaluate.metrics import accuracy, avg_acc, get_cm
 from evaluate.kappa import quadratic_kappa
+from pytorch.model_helper import select_model
 
 
 class ActiveDualPipeline(DualPipeline):
@@ -53,12 +54,19 @@ class ActiveLearning():
         self.result_df = None
         self.result_df2 = None
 
+        self.cn_config = config.get("cn_config")
         self.al_config = config.get("al_config")
         self.model_config = config.get("model_config")
         self.max_steps = self.al_config.get("max_steps")
 
+        ## Continue restoration
+        current_step, packet, main_path = self.continue_restoration(self.cn_config, self.al_config, self.model_config) 
+
         # A0: Create Active Learning directory
-        self.create_dir(**self.al_config) # create main dir, return updated_main_dir (increment version if exist)
+        if current_step == 0:
+            self.create_dir(**self.al_config) # create main dir, return updated_main_dir (increment version if exist)
+        else:
+            self.al_config["updated_main_dir"] = main_path
 
         # A1: Partition 
         dual_df = create_dual_label_df(main_data_dir = self.model_config.get("main_data_dir"), train_dir_list = self.model_config.get("train_dir_list"))
@@ -66,101 +74,157 @@ class ActiveLearning():
         full_df["ui"] = 0
         full_df["features"] = 0
 
-        # A2: Active Learning
-        # full_df, current_step, centroid, unlabel_df, model, val_df, previous_model_path
-        if self.al_config.get("style") == "ui":
-            self.ui_active_learning(full_df, val_df)
-        elif self.al_config.get("style") == "random":
-            self.random_active_learning(full_df, val_df, self.al_config.get("random_state"))
+        self.full_df = full_df
+        self.val_df = val_df
 
-    
-    def ui_active_learning(self, full_df, val_df):
-        model = None
-        current_step = 0
+        # A2: Active Learning --- # full_df, current_step, centroid, unlabel_df, model, val_df, previous_model_path
+        # Loop
+        self.loop(current_step, packet)
+
+    def continue_restoration(self, cn_config, al_config, model_config):
+        main_path = cn_config.get("main_path")
+        current_step = cn_config.get("current_step")
+        previous_step_path = cn_config.get("previous_step_path")
+        style = al_config.get("style")
+        train_name = model_config.get("train_name")
+        model_type = model_config.get("model_type")
+        model_kwargs = model_config.get("model_kwargs")
+
+        if current_step == 0:
+            return current_step, None, main_path
+
+        if style == "ui":
+            label_df = pd.read_csv(f"{previous_step_path}/label_df.csv")
+            unlabel_df = pd.read_csv(f"{previous_step_path}/unlabel_df.csv")
+            previous_model_path = f'{previous_step_path}/{train_name}/best_qk_model.pth'
+            model = select_model(model_type, model_kwargs)
+            model.load_state_dict(torch.load(previous_model_path))
+            centroid = joblib.load(f'{previous_step_path}/centroid.pkl')
+            packet = (label_df, unlabel_df, model, previous_model_path, centroid)
+        elif style == "random":
+            label_df = pd.read_csv(f"{previous_step_path}/label_df.csv")
+            unlabel_df = pd.read_csv(f"{previous_step_path}/unlabel_df.csv")
+            previous_model_path = f'{previous_step_path}/{train_name}/best_qk_model.pth'
+            model = select_model(model_type, model_kwargs)
+            model.load_state_dict(torch.load(previous_model_path))
+            packet = (label_df, unlabel_df, model, previous_model_path)
+        print("Continuing from step: ", current_step)
+
+        return current_step, packet, main_path
+
+    def loop(self, current_step, packet):
+        # model = None
+        # current_step = 0
         while current_step < self.max_steps:
+            if self.al_config.get("style") == "ui":
+                packet = self.ui_active_learning(current_step, packet)
+            elif self.al_config.get("style") == "random":
+                packet = self.random_active_learning(current_step, packet, self.al_config.get("random_state"))
+            current_step += 1 
 
-            # phase 0: init step 0 directory 
-            current_step_dir = self.create_step_dir(current_step)
+    def ui_active_learning(self, current_step, packet):
+        val_df = self.val_df
 
-            # phase 1: construct new label_df, unlabel_df, to_add_df 
-            if current_step == 0:
-                # Initialization and form df
-                label_df, unlabel_df = self.construct_initial_training_set(full_df, **self.al_config)
-                to_add_df = label_df.copy()
-            else: 
-                # Compute UI and form df
-                # compute unfamiliarity index and remove selected n samples from unlabelled
-                to_add_df, unlabel_df = self.extract_features_and_compute_index(model = model, unlabel_df = unlabel_df, centroid = centroid, n = self.al_config.get("n"), outlier = self.al_config.get("outlier"), **self.model_config)
-                label_df = label_df.append(to_add_df) # add selected n samples to labelled
+        # phase -1: continue restoration
+        if packet is not None:
+            label_df, unlabel_df, model, previous_model_path, centroid = packet #unpack
+        else:
+            model = None
 
-            # phase 2: Training
-            if model is not None:
-                model = None
-                torch.cuda.empty_cache()
+        # phase 0: init step 0 directory    
+        current_step_dir = self.create_step_dir(current_step)
 
-            if current_step == 0:
-                model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=None, model_config = self.model_config)
-            else:
-                model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=previous_model_path, model_config = self.model_config)
-            print("Current Step:", current_step, " -- previous_model_path:", previous_model_path)
+        # phase 1: construct new label_df, unlabel_df, to_add_df 
+        if current_step == 0:
+            # Initialization and form df
+            full_df = self.full_df
+            label_df, unlabel_df = self.construct_initial_training_set(full_df, **self.al_config)
+            to_add_df = label_df.copy()
+        else: 
+            # Compute UI and form df
+            # compute unfamiliarity index and remove selected n samples from unlabelled
+            to_add_df, unlabel_df = self.extract_features_and_compute_index(model = model, unlabel_df = unlabel_df, centroid = centroid, n = self.al_config.get("n"), outlier = self.al_config.get("outlier"), **self.model_config)
+            label_df = label_df.append(to_add_df) # add selected n samples to labelled
+
+        # phase 2: Training
+        if model is not None:
+            model = None
+            torch.cuda.empty_cache()
+
+        if current_step == 0:
+            model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=None, model_config = self.model_config)
+        else:
+            model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=previous_model_path, model_config = self.model_config)
+        print("Current Step:", current_step, " -- previous_model_path:", previous_model_path)
+        
+        # phase 3: Cluster Formation
+        centroid = self.extract_features_and_form_clusters(model, label_df, **self.model_config)
+        
+        # phase 4: Evaluation
+        result_df = self.evaluate(model, val_df, **self.model_config)
+        
+        # phase 5: Dump output
+        self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
+        self.dump_centroid(current_step_dir, centroid) # dump centroid
+        self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
+
+        # repeat
+        # current_step += 1
+        packet = (label_df, unlabel_df, model, previous_model_path, centroid)
+        return packet
+
+
+    def random_active_learning(self, current_step, packet, random_state):
+        val_df = self.val_df
+
+        # phase -1: continue restoration
+        if packet is not None:
+            label_df, unlabel_df, model, previous_model_path = packet #unpack
+        else:
+            model = None
             
-            # phase 3: Cluster Formation
-            centroid = self.extract_features_and_form_clusters(model, label_df, **self.model_config)
+        # phase 0: init step 0 directory 
+        current_step_dir = self.create_step_dir(current_step)
+
+        # phase 1: construct new label_df, unlabel_df, to_add_df 
+        if current_step == 0:
+            # Initialization and form df
+            full_df = self.full_df
+            label_df, unlabel_df = self.construct_initial_training_set(full_df, **self.al_config)
+            to_add_df = label_df.copy()
+        else: 
+            n = self.al_config["n"] 
+            to_add_df = unlabel_df.sample(n, random_state = random_state)    
+            unlabel_df = unlabel_df.drop(to_add_df.index)
+            label_df = label_df.append(to_add_df) # add selected n samples to labelled        
+
+        # phase 2: Training
+        if model is not None:
+            model = None
+            torch.cuda.empty_cache()
+
+        if current_step == 0:
+            model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=None, model_config = self.model_config)
+        else:
+            model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=previous_model_path, model_config = self.model_config)
+        print("Current Step:", current_step, " -- previous_model_path:", previous_model_path)
             
-            # phase 4: Evaluation
-            result_df = self.evaluate(model, val_df, **self.model_config)
-            
-            # phase 5: Dump output
-            self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
-            self.dump_centroid(current_step_dir, centroid) # dump centroid
-            self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
+        # phase 3: Cluster Formation
+        # centroid = self.extract_features_and_form_clusters(model, label_df, **self.model_config)
+        
+        # phase 4: Evaluation
+        result_df = self.evaluate(model, val_df, **self.model_config)
+        
+        # phase 5: Dump output
+        self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
+        # self.dump_centroid(current_step_dir, centroid) # dump centroid
+        self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
 
-            # repeat
-            current_step += 1
+        # repeat
+        # current_step += 1
+        packet = label_df, unlabel_df, model, previous_model_path
+        return packet
 
-    def random_active_learning(self, full_df, val_df, random_state):
-        model = None
-        current_step = 0
-        while current_step < self.max_steps:
-
-            # phase 0: init step 0 directory 
-            current_step_dir = self.create_step_dir(current_step)
-
-            # phase 1: construct new label_df, unlabel_df, to_add_df 
-            if current_step == 0:
-                # Initialization and form df
-                label_df, unlabel_df = self.construct_initial_training_set(full_df, **self.al_config)
-                to_add_df = label_df.copy()
-            else: 
-                n = self.al_config["n"] 
-                to_add_df = unlabel_df.sample(n, random_state = random_state)    
-                unlabel_df = unlabel_df.drop(to_add_df.index)
-                label_df = label_df.append(to_add_df) # add selected n samples to labelled        
-
-            # phase 2: Training
-            if model is not None:
-                model = None
-                torch.cuda.empty_cache()
-
-            if current_step == 0:
-                model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=None, model_config = self.model_config)
-            else:
-                model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=previous_model_path, model_config = self.model_config)
-            print("Current Step:", current_step, " -- previous_model_path:", previous_model_path)
-            
-            # phase 3: Cluster Formation
-            # centroid = self.extract_features_and_form_clusters(model, label_df, **self.model_config)
-            
-            # phase 4: Evaluation
-            result_df = self.evaluate(model, val_df, **self.model_config)
-            
-            # phase 5: Dump output
-            self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
-            # self.dump_centroid(current_step_dir, centroid) # dump centroid
-            self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
-
-            # repeat
-            current_step += 1
 
     def create_dir(self, main_dir, root_dir, **kwargs):
         '''A0: Create main directory for active learning output'''
@@ -177,7 +241,7 @@ class ActiveLearning():
         # m is the initial sample size
         # n is the subsequent resampling size
         if demo:
-            full_df = full_df.sample(1000, random_state = random_state)
+            full_df = full_df.sample(600, random_state = random_state)
         label_df = full_df.sample(m, random_state = random_state)
         unlabel_df = full_df.drop(label_df.index).copy()
         while len(label_df["labels_x"].unique()) < 5:

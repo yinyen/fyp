@@ -1,25 +1,25 @@
-# Active Learning Config
 
+# Continue restoration config
 cn_config:
-  current_step: 2
-  main_path: ./torch_DualAL/dual_al_random
-  previous_step_path: ./torch_DualAL/dual_al_random/step_001
+  current_step: 0
+  main_path: ./torch_DualAL/dual_al_ui
+  previous_step_path: ./torch_DualAL/dual_al_ui/step_001
 
+# Active Learning Config
 al_config:
   train_name: dual_active_learning
-  style: random
+  style: ui # random
   random_state: 123
-  demo: 1
 
   # root_dir: "AL"
   root_dir: "./torch_DualAL"
-  main_dir: "dual_al_random"
-  val_n_sample: 100 #500
-  max_steps: 50
+  main_dir: "dual_al_ui" # dual_al_random
+  val_n_sample: 500 #500
+  max_steps: 25
 
   # active learning parameters
-  m: 50 # 200, start 200,100
-  n: 50  # 100, step sampling
+  m: 200 # 200, start 200,100
+  n: 100  # 100, step sampling
   outlier: 0.01
 
 # Model Config:
@@ -44,7 +44,7 @@ model_config:
   reweight_sample_factor: 2
   single_mode: 1
 
-  epochs: 2
+  epochs: 50
   loss_type: smoothl1loss
   model_type: single_resnext101
   model_kwargs:
@@ -52,7 +52,7 @@ model_config:
     num_classes: 1
     use_init: kaiming
     limit_two: 1
-  qk_patience: 1 #10
+  qk_patience: 10 #10
 
   optimizer_type: AdamW
   opt_kwargs:
@@ -61,7 +61,7 @@ model_config:
 
   scheduler_type: CosineAnnealingLR
   scheduler_kwargs:
-    T_max: 2
+    T_max: 50
     eta_min: 0.0002
 
 

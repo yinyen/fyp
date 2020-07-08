@@ -1,12 +1,20 @@
+
+# Continue restoration config
+cn_config:
+  current_step: 0
+  main_path: ./torch_DualAL/dual_al_random
+  previous_step_path: ./torch_DualAL/dual_al_random/step_001
+
+
 # Active Learning Config
 al_config:
   train_name: dual_active_learning
-  style: ui # random
+  style: random # random
   random_state: 123
 
   # root_dir: "AL"
   root_dir: "./torch_DualAL"
-  main_dir: "dual_al_ui" # dual_al_random
+  main_dir: "dual_al_random" # dual_al_random
   val_n_sample: 500 #500
   max_steps: 25
 

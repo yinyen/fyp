@@ -18,6 +18,7 @@ def extract_features(model, loader_data):
     torch.cuda.empty_cache()
 
     features = np.array(features_list)
+    print(features.shape)
     features = features.reshape((features.shape[0]*features.shape[1], -1))
     return features, None
 
