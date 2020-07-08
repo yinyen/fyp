@@ -173,9 +173,11 @@ class ActiveLearning():
         current_step_dir = create_main_dir(f"{updated_main_dir}/step_{current_step}")
         return current_step_dir
 
-    def construct_initial_training_set(self, full_df, m, n, random_state = 123, **kwargs):
+    def construct_initial_training_set(self, full_df, m, n, random_state = 123, demo = 0, **kwargs):
         # m is the initial sample size
         # n is the subsequent resampling size
+        if demo:
+            full_df = full_df.sample(1000, random_state = random_state)
         label_df = full_df.sample(m, random_state = random_state)
         unlabel_df = full_df.drop(label_df.index).copy()
         while len(label_df["labels_x"].unique()) < 5:
@@ -209,7 +211,6 @@ class ActiveLearning():
             sub_df = label_df.loc[uf, "features"]
             cent = sub_df.values.mean()
             centroid[i] = cent
-            print(cent)
         return centroid
 
     def extract_features_and_compute_index(self, model, unlabel_df, centroid, n, outlier, size, batch_size, workers, load_only, **kwargs):

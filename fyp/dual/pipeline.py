@@ -73,7 +73,7 @@ class DualPipeline():
 
         # iterate training
         best_loss = float('inf')
-        best_qk = 0
+        best_qk = -100
         pt = qk_patience        
         for epoch in range(epochs):
             print('Epoch [%d/%d]' %(epoch+1, epochs))

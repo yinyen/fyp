@@ -3,6 +3,7 @@ al_config:
   train_name: dual_active_learning
   style: ui
   random_state: 123
+  demo: 1
 
   # root_dir: "AL"
   root_dir: "./torch_DualAL"
@@ -37,7 +38,7 @@ model_config:
   reweight_sample_factor: 2
   single_mode: 1
 
-  epochs: 50
+  epochs: 2
   loss_type: smoothl1loss
   model_type: single_resnext101
   model_kwargs:
@@ -54,7 +55,7 @@ model_config:
 
   scheduler_type: CosineAnnealingLR
   scheduler_kwargs:
-    T_max: 50
+    T_max: 2
     eta_min: 0.0002
 
 

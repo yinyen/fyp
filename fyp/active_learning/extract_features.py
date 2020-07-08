@@ -7,26 +7,20 @@ from torch import nn
 from dual.training import convert_pred
 
 def extract_features(model, loader_data):
-    feature_list = []
-    y_list = []
-
+    features_list = []
     features_extractor = nn.Sequential(*list(model.children())[:-1])
     for i, (input1, input2, target) in tqdm(enumerate(loader_data), total=len(loader_data)):
         input1, input2, target = input1.cuda(), input2.cuda(), target.float().cuda() 
         output = features_extractor(input1) 
-        x = output.cpu().detach().numpy().tolist()
-        y = target.cpu().detach().numpy().tolist()
-        feature_list += x
-        y_list += y
+        features_list.append(np.array(output.tolist()))
 
     features_extractor = None
     torch.cuda.empty_cache()
 
-    features = np.array(feature_list) #.reshape(-1, 2048)
-    features = features.reshape((features.shape[0], -1))
-    y_labels = np.array(y_list)
-    print(features.shape, y_labels.shape)
-    return features, y_labels
+    features = np.array(features_list)
+    features = features.reshape((features.shape[0]*features.shape[1], -1))
+    return features, None
+
 
 def predict(model, loader_data):
     y_true = []
