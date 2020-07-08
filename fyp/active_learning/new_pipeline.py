@@ -1,3 +1,4 @@
+import os
 import glob
 import json
 import joblib
@@ -7,7 +8,7 @@ import numpy as np
 
 import torch
 import torch.backends.cudnn as cudnn
-from pytorch.param_helper import create_dir, create_main_dir, import_config
+from pytorch.param_helper import create_dir, create_main_dir, import_config, dump_config
 from dual.dual_df_helper import create_dual_label_df, split_dual_df
 from dual.dual_gen_helper import initialize_dual_gen, create_data_loader
 from dual.pipeline import DualPipeline
@@ -59,6 +60,7 @@ class ActiveLearning():
         self.model_config = config.get("model_config")
         self.max_steps = self.al_config.get("max_steps")
 
+
         ## Continue restoration
         current_step, packet, main_path = self.continue_restoration(self.cn_config, self.al_config, self.model_config) 
 
@@ -67,6 +69,10 @@ class ActiveLearning():
             self.create_dir(**self.al_config) # create main dir, return updated_main_dir (increment version if exist)
         else:
             self.al_config["updated_main_dir"] = main_path
+
+        ## Dump config
+        output_path = os.path.join(self.al_config["updated_main_dir"], "active_learning_config.yaml")
+        dump_config(output_path, config)
 
         # A1: Partition 
         dual_df = create_dual_label_df(main_data_dir = self.model_config.get("main_data_dir"), train_dir_list = self.model_config.get("train_dir_list"))
