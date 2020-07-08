@@ -98,10 +98,10 @@ class DualPipeline():
             plog.save(log_path) # save logs as csv
 
             # save best model
-            if val_log['loss'] < best_loss:
-                torch.save(model.state_dict(), f'{model_path}/model.pth')
-                best_loss = val_log['loss']
-                print("=> saved best model by best loss", best_loss)
+            # if val_log['loss'] < best_loss:
+            #     torch.save(model.state_dict(), f'{model_path}/model.pth')
+            #     best_loss = val_log['loss']
+            #     print("=> saved best model by best loss", best_loss)
 
             if val_log['qk'] > best_qk:
                 torch.save(model.state_dict(), f'{model_path}/best_qk_model.pth')
