@@ -156,7 +156,7 @@ class ActiveLearning():
             
             # phase 5: Dump output
             self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
-            self.dump_centroid(current_step_dir, centroid) # dump centroid
+            # self.dump_centroid(current_step_dir, centroid) # dump centroid
             self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
 
             # repeat
