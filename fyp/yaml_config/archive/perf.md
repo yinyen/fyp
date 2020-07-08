@@ -1,0 +1,1 @@
+torch_models/xception_d400_force_v2

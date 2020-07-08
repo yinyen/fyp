@@ -1,0 +1,48 @@
+train_name: retrain_xception_d400_force_v1
+
+# RETRAIN
+retrain: 1
+premodel_path: ./torch_models/xception_d400_force_v1_v09/best_avg_acc_model.pth
+premetric_path: ./torch_models/xception_d400_force_v1_v09/best_avg_acc_metric_fc.pth
+
+# main_data_dir: ../resize_train
+main_data_dir: ../all_train_300
+use_train_dir: full_train
+main_model_dir: torch_models
+workers: 14
+size: 400
+batch_size: 12
+batch_multiplier: 10
+force_random_sample: 1000
+fix_sample: 1500
+fix_sample_val: 1000
+epochs: 1000
+
+# loss_type: cross_entropy
+loss_type: my_loss
+# loss_type: my_cross_entropy
+# loss_type: mse
+model_type: xception
+metric_type: adacos
+num_ftr: 1000
+num_classes: 5
+
+optimizer_type: AdamW
+opt_kwargs:
+  lr: 0.0005
+  weight_decay: 0.0025
+# optimizer_type: SGD
+# opt_kwargs:
+#   lr: 0.0001
+#   momentum: 0.5
+#   weight_decay: 0.025
+
+model_kwargs:
+  pretrained: True
+scheduler_type: CosineAnnealingLR
+scheduler_kwargs:
+  T_max: 1000
+  eta_min: 0.00001
+
+# https://www.fast.ai/2018/07/02/adam-weight-decay/#implementing-adamw
+# adamw with onecycle
