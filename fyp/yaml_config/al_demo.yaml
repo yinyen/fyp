@@ -1,34 +1,36 @@
-# Active Learning Config
 
+# Continue restoration config
 cn_config:
-  current_step: 2
-  main_path: ./torch_DualAL/dual_al_random
-  previous_step_path: ./torch_DualAL/dual_al_random/step_001
+  current_step: 0
+  main_path: ./torch_ao/random
+  previous_step_path: ./torch_ao/random/step_001
 
+# Active Learning Config
 al_config:
-  train_name: dual_active_learning
-  style: random
+  train_name: active_learning
+  style: random # random
   random_state: 123
   demo: 1
 
   # root_dir: "AL"
-  root_dir: "./torch_DualAL"
-  main_dir: "dual_al_random"
-  val_n_sample: 100 #500
-  max_steps: 50
+  root_dir: "./torch_ao"
+  main_dir: "demo" # dual_al_random
+  val_n_sample: 100
+  test_n_sample: 300
+  max_steps: 15
 
   # active learning parameters
-  m: 50 # 200, start 200,100
-  n: 50  # 100, step sampling
+  m: 100 # 200, start 200,100
+  n: 100  # 100, step sampling
   outlier: 0.01
 
 # Model Config:
 model_config:
-  train_name: new_single_resnext50_imagenet_400
+  train_name: model
 
   # RETRAIN
   retrain: 0
-  premodel_path: torch_models/new_small_dual_xception_400_v3a_v13/best_qk_model.pth
+  premodel_path: .
 
   load_only: 1
   main_data_dir: ..
@@ -46,7 +48,7 @@ model_config:
 
   epochs: 2
   loss_type: smoothl1loss
-  model_type: single_resnext101
+  model_type: single_resnext50
   model_kwargs:
     num_ftrs: 1000
     num_classes: 1

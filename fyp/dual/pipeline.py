@@ -1,4 +1,5 @@
 import os
+import time
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
@@ -16,6 +17,7 @@ from dual.training import train, validate, PerformanceLog
 
 class DualPipeline():
     def __init__(self, model = None, **kwargs):
+        t0 = time.time()
         cudnn.benchmark = True
         
         train_name = kwargs.get("train_name")
@@ -36,6 +38,10 @@ class DualPipeline():
 
         self.dump_config(self.model_path, kwargs)
         self.train(train_loader, val_loader, model, criterion, optimizer, scheduler, **kwargs)
+        t1 = time.time()
+        self.total_time = (t1-t0)//60
+        print("Total time taken: {} minutes".format(self.total_time))
+        self.dump_time(self.model_path)
 
     def init_dataset(self, main_data_dir, train_dir_list, batch_size, size, workers, reweight_sample = 1, reweight_sample_factor = 2, single_mode = 0, load_only = 0, **kwargs):
         # initialize dataset generators
@@ -93,7 +99,7 @@ class DualPipeline():
             perf_logs.append(f'validation: ' + 'loss %.4f - acc, avg_acc, qk (%.4f, %.4f, %.4f)' % (val_log['loss'], val_log['acc'], val_log['avg_acc'], val_log['qk']))
             print("Log:", self.log_path)
             print(" -- ".join(perf_logs))
-            print("LearningRate:", scheduler.get_last_lr())
+            print("Current best qk: {}, LearningRate: {}".format(best_qk, scheduler.get_last_lr()))
             plog.append(epoch = epoch, lr = scheduler.get_last_lr()[0], train_log = train_log, val_log = val_log, test_log = val_log)
             plog.save(log_path) # save logs as csv
 
@@ -128,3 +134,7 @@ class DualPipeline():
         output_path = os.path.join(model_path, "config.yaml")
         dump_config(output_path, kwargs)
             
+    def dump_time(self, model_path):
+        output_path = os.path.join(model_path, "time.yaml")
+        time_kw = {"time_taken": self.total_time}
+        dump_config(output_path, time_kw)

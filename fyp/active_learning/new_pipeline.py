@@ -1,4 +1,5 @@
 import os
+import time
 import glob
 import json
 import joblib
@@ -21,6 +22,7 @@ from pytorch.model_helper import select_model
 
 class ActiveDualPipeline(DualPipeline):
     def __init__(self, d_train, d_val, model, **kwargs):
+        t0 = time.time()
         cudnn.benchmark = True
         
         train_name = kwargs.get("train_name")
@@ -42,7 +44,11 @@ class ActiveDualPipeline(DualPipeline):
 
         self.dump_config(self.model_path, kwargs)
         self.train(train_loader, val_loader, model, criterion, optimizer, scheduler, **kwargs)
-
+        t1 = time.time()
+        self.total_time = (t1-t0)//60
+        print("Total time taken: {} minutes".format(self.total_time))
+        self.dump_time(self.model_path)
+        
     def init_dataset(self, d_train, d_val, batch_size, size, workers, reweight_sample = 1, reweight_sample_factor = 2, single_mode = 0, load_only = 0, **kwargs):
         # initialize dataset generators
         print("Train:", d_train.shape, "Val:", d_val.shape)
@@ -76,12 +82,16 @@ class ActiveLearning():
 
         # A1: Partition 
         dual_df = create_dual_label_df(main_data_dir = self.model_config.get("main_data_dir"), train_dir_list = self.model_config.get("train_dir_list"))
-        full_df, val_df = split_dual_df(dual_df, p = None, seed = 321, n = self.al_config.get("val_n_sample")) 
+
+        full_df, test_df = split_dual_df(dual_df, p = None, seed = self.al_config.get("random_state"), n = self.al_config.get("test_n_sample")) 
+        full_df, val_df = split_dual_df(full_df, p = None, seed = self.al_config.get("random_state"), n = self.al_config.get("val_n_sample")) 
+        print("full, val, test:", full_df.shape, val_df.shape, test_df.shape)
         full_df["ui"] = 0
         full_df["features"] = 0
 
         self.full_df = full_df
         self.val_df = val_df
+        self.test_df = test_df
 
         # A2: Active Learning --- # full_df, current_step, centroid, unlabel_df, model, val_df, previous_model_path
         # Loop
@@ -129,7 +139,9 @@ class ActiveLearning():
             current_step += 1 
 
     def ui_active_learning(self, current_step, packet):
+        t0 = time.time()
         val_df = self.val_df
+        test_df = self.test_df
 
         # phase -1: continue restoration
         if packet is not None:
@@ -168,12 +180,16 @@ class ActiveLearning():
         
         # phase 4: Evaluation
         result_df = self.evaluate(model, val_df, **self.model_config)
-        
+        result_df2 = self.evaluate(model, test_df, **self.model_config)
+        t1 = time.time()
+
         # phase 5: Dump output
         self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
         self.dump_centroid(current_step_dir, centroid) # dump centroid
         self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
-
+        self.dump_step_result2(current_step_dir, result_df2) # dump evaluation metrics
+        self.dump_time(current_step_dir, t0, t1)
+        
         # repeat
         # current_step += 1
         packet = (label_df, unlabel_df, model, previous_model_path, centroid)
@@ -181,7 +197,9 @@ class ActiveLearning():
 
 
     def random_active_learning(self, current_step, packet, random_state):
+        t0 = time.time()
         val_df = self.val_df
+        test_df = self.test_df
 
         # phase -1: continue restoration
         if packet is not None:
@@ -220,11 +238,15 @@ class ActiveLearning():
         
         # phase 4: Evaluation
         result_df = self.evaluate(model, val_df, **self.model_config)
-        
+        result_df2 = self.evaluate(model, test_df, **self.model_config)
+        t1 = time.time()
+
         # phase 5: Dump output
         self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
         # self.dump_centroid(current_step_dir, centroid) # dump centroid
         self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
+        self.dump_step_result2(current_step_dir, result_df2) # dump evaluation metrics
+        self.dump_time(current_step_dir, t0, t1)
 
         # repeat
         # current_step += 1
@@ -326,4 +348,16 @@ class ActiveLearning():
         else:
             self.result_df = self.result_df.append(result_df)
         self.result_df.to_csv(f"{current_step_dir}/result.csv")
+
+    def dump_step_result2(self, current_step_dir, result_df_test):
+        if self.result_df2 is None:
+            self.result_df2 = result_df_test
+        else:
+            self.result_df2 = self.result_df2.append(result_df_test)
+        self.result_df2.to_csv(f"{current_step_dir}/result_test.csv")
     
+    def dump_time(self, current_step_dir, t0, t1):
+        total_time = (t1 - t0)//60
+        output_path = os.path.join(current_step_dir, "time.yaml")
+        time_kw = {"time_taken": total_time}
+        dump_config(output_path, time_kw)

@@ -5,7 +5,7 @@ from active_learning.new_pipeline import ActiveLearning
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', default='yaml_config/new_al_resnext.yaml',
+    parser.add_argument('--config', default='yaml_config/al_demo.yaml',
                         help='yaml file path')
     args = parser.parse_args()
     return args
