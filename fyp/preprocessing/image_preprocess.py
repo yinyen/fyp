@@ -83,7 +83,7 @@ def resize(img, size):
         im = Image.fromarray(x)
         return im
     except:
-        return img
+        return None
 
 
 def load_transform_image(img_name, size, load_only = 0):
@@ -93,6 +93,9 @@ def load_transform_image(img_name, size, load_only = 0):
     image = transform_img(image, remove_border_1)
     image = pad_to_square(image)
     image = resize(image, size)
+    if image is None:
+        print("Error at resize:", img_name)
+    
     return image
 
 
