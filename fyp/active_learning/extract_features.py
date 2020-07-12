@@ -17,9 +17,9 @@ def extract_features(model, loader_data):
     features_extractor = None
     torch.cuda.empty_cache()
 
-    features = np.array(features_list)
-    print(features.shape)
-    features = features.reshape((features.shape[0]*features.shape[1], -1))
+    features = np.concatenate(features_list, axis=0)
+    features = features.reshape((features.shape[0], features.shape[1]))
+
     return features, None
 
 
@@ -65,3 +65,28 @@ def extract_dual_features(model, unseen_test_loader):
     y_labels = np.array(y_list[:k])
     print(features.shape, y_labels.shape)
     return features, y_labels
+
+
+def indices_to_one_hot(data, nb_classes = 5):
+    """Convert an iterable of indices to one-hot encoded labels."""
+    targets = np.array(data).reshape(-1)
+    return np.eye(nb_classes)[targets]
+
+def extract_xy(model, data_gen, one_hot = False):
+    features_list = []
+    y_true = []
+    features_extractor = nn.Sequential(*list(model.children())[:-1])
+    for i, (input1, input2, target) in tqdm(enumerate(data_gen), total=len(data_gen)):
+        input1, input2, target = input1.cuda(), input2.cuda(), target.float().cuda() 
+        output = features_extractor(input1) 
+        np_output = np.array(output.tolist())
+        features_list.append(np_output)
+        target_to_add = target.int().tolist()
+        y_true += target_to_add
+    # features = np.array(features_list)
+    features = np.concatenate(features_list, axis=0)
+    features = features.reshape((features.shape[0], features.shape[1]))
+    y_true = np.array(y_true)
+    if one_hot:
+        y_true = indices_to_one_hot(y_true)
+    return features, y_true

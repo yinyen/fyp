@@ -8,9 +8,10 @@ cn_config:
 # Active Learning Config
 al_config:
   train_name: active_learning
-  style: random # random
+  style: maxentropy # random
   random_state: 123
   demo: 1
+  override_reset_model: 1
 
   # root_dir: "AL"
   root_dir: "./torch_ao"
@@ -46,7 +47,7 @@ model_config:
   reweight_sample_factor: 2
   single_mode: 1
 
-  epochs: 2
+  epochs: 1
   loss_type: smoothl1loss
   model_type: single_resnext50
   model_kwargs:

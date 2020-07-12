@@ -74,8 +74,7 @@ def extract_xy(model, data_gen, one_hot = False):
 X, y = extract_xy(model, train_gen)
 X_val, y_val = extract_xy(model, val_gen)
 
-from sklearn.linear_model import LogisticRegression
-import time
+
 t0 = time.time()
 
 

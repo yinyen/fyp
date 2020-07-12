@@ -10,6 +10,7 @@ al_config:
   train_name: active_learning
   style: random # random
   random_state: 123
+  override_reset_model: 1
 
   # root_dir: "AL"
   root_dir: "./torch_ao"

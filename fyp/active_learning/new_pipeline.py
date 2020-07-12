@@ -13,11 +13,12 @@ from pytorch.param_helper import create_dir, create_main_dir, import_config, dum
 from dual.dual_df_helper import create_dual_label_df, split_dual_df
 from dual.dual_gen_helper import initialize_dual_gen, create_data_loader
 from dual.pipeline import DualPipeline
-from active_learning.extract_features import extract_features, predict
+from active_learning.extract_features import extract_features, predict, extract_xy
 from active_learning.metrics import unfamiliarity_index
 from evaluate.metrics import accuracy, avg_acc, get_cm
 from evaluate.kappa import quadratic_kappa
 from pytorch.model_helper import select_model
+from sklearn.linear_model import LogisticRegression
 
 
 class ActiveDualPipeline(DualPipeline):
@@ -66,6 +67,8 @@ class ActiveLearning():
         self.model_config = config.get("model_config")
         self.max_steps = self.al_config.get("max_steps")
 
+        self.style = self.al_config.get("style")
+        self.override_reset_model = self.al_config.get("override_reset_model")
 
         ## Continue restoration
         current_step, packet, main_path = self.continue_restoration(self.cn_config, self.al_config, self.model_config) 
@@ -117,7 +120,7 @@ class ActiveLearning():
             model.load_state_dict(torch.load(previous_model_path))
             centroid = joblib.load(f'{previous_step_path}/centroid.pkl')
             packet = (label_df, unlabel_df, model, previous_model_path, centroid)
-        elif style == "random":
+        elif style == "random" or style == "maxentropy" or style == "maxentropy_dist":
             label_df = pd.read_csv(f"{previous_step_path}/label_df.csv")
             unlabel_df = pd.read_csv(f"{previous_step_path}/unlabel_df.csv")
             previous_model_path = f'{previous_step_path}/{train_name}/best_qk_model.pth'
@@ -136,6 +139,9 @@ class ActiveLearning():
                 packet = self.ui_active_learning(current_step, packet)
             elif self.al_config.get("style") == "random":
                 packet = self.random_active_learning(current_step, packet, self.al_config.get("random_state"))
+            elif self.al_config.get("style") == "maxentropy" or self.al_config.get("style") == "maxentropy_dist":
+                packet = self.maxentropy_active_learning(current_step, packet)
+
             current_step += 1 
 
     def ui_active_learning(self, current_step, packet):
@@ -186,6 +192,8 @@ class ActiveLearning():
         # phase 5: Dump output
         self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
         self.dump_centroid(current_step_dir, centroid) # dump centroid
+
+        result_df["time"] = (t1-t0)/60
         self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
         self.dump_step_result2(current_step_dir, result_df2) # dump evaluation metrics
         self.dump_time(current_step_dir, t0, t1)
@@ -193,6 +201,63 @@ class ActiveLearning():
         # repeat
         # current_step += 1
         packet = (label_df, unlabel_df, model, previous_model_path, centroid)
+        return packet
+
+    def maxentropy_active_learning(self, current_step, packet):
+        t0 = time.time()
+        val_df = self.val_df
+        test_df = self.test_df
+
+        # phase -1: continue restoration
+        if packet is not None:
+            label_df, unlabel_df, model, previous_model_path = packet #unpack
+        else:
+            model = None
+
+        # phase 0: init step 0 directory    
+        current_step_dir = self.create_step_dir(current_step)
+
+        # phase 1: construct new label_df, unlabel_df, to_add_df 
+        if current_step == 0:
+            # Initialization and form df
+            full_df = self.full_df
+            label_df, unlabel_df = self.construct_initial_training_set(full_df, **self.al_config)
+            to_add_df = label_df.copy()
+        else: 
+            # compute entropy for each unlabel, and select top n entropy 
+            to_add_df, unlabel_df = self.entropy_selection(model = model, label_df = label_df, unlabel_df = unlabel_df, n = self.al_config.get("n"), outlier = self.al_config.get("outlier"), **self.model_config)
+            label_df = label_df.append(to_add_df) # add selected n samples to labelled
+
+        # phase 2: Training
+        if model is not None:
+            model = None
+            torch.cuda.empty_cache()
+
+        if current_step == 0:
+            model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=None, model_config = self.model_config)
+        else:
+            model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=previous_model_path, model_config = self.model_config)
+        print("Current Step:", current_step, " -- previous_model_path:", previous_model_path)
+        
+        # phase 3: Cluster Formation
+        # centroid = self.extract_features_and_form_clusters(model, label_df, **self.model_config)
+        
+        # phase 4: Evaluation
+        result_df = self.evaluate(model, val_df, **self.model_config)
+        result_df2 = self.evaluate(model, test_df, **self.model_config)
+        t1 = time.time()
+
+        # phase 5: Dump output
+        self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
+        # self.dump_centroid(current_step_dir, centroid) # dump centroid
+        result_df["time"] = (t1-t0)/60
+        self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
+        self.dump_step_result2(current_step_dir, result_df2) # dump evaluation metrics
+        self.dump_time(current_step_dir, t0, t1)
+        
+        # repeat
+        # current_step += 1
+        packet = (label_df, unlabel_df, model, previous_model_path)
         return packet
 
 
@@ -244,6 +309,7 @@ class ActiveLearning():
         # phase 5: Dump output
         self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
         # self.dump_centroid(current_step_dir, centroid) # dump centroid
+        result_df["time"] = (t1-t0)/60
         self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
         self.dump_step_result2(current_step_dir, result_df2) # dump evaluation metrics
         self.dump_time(current_step_dir, t0, t1)
@@ -287,6 +353,10 @@ class ActiveLearning():
             model_config["retrain"] = 1
             model_config["premodel_path"] = previous_model_path   
 
+        if self.override_reset_model == 1:
+            model_config["retrain"] = 0
+            model_config["premodel_path"] = None   
+
         CNN = ActiveDualPipeline(d_train = label_df, d_val = val_df, model = model, **model_config)
         model = CNN.get_model()
         best_model_path = CNN.get_best_model_path()
@@ -315,6 +385,50 @@ class ActiveLearning():
         subN = int(N*(1-outlier))
         to_add_df = unlabel_df.tail(subN).head(n) # selected n samples
         unlabel_df = unlabel_df.drop(to_add_df.index)
+        return to_add_df, unlabel_df
+    
+    def entropy_selection(self, model, label_df, unlabel_df, n, outlier, size, batch_size, reweight_sample, reweight_sample_factor, workers, load_only, **kwargs):
+        train_gen, unlabel_gen = initialize_dual_gen(label_df, unlabel_df, size = size, batch_size = batch_size, reweight_sample = reweight_sample, reweight_sample_factor = reweight_sample_factor, workers = workers, single_mode = 0, load_only = load_only)
+
+        # extract features
+        X_train, y_train = extract_xy(model = model, data_gen = train_gen)
+        print("(entropy) Label/Train shape:", X_train.shape, y_train.shape)
+        X_unlabel, y_unlabel = extract_xy(model = model, data_gen = unlabel_gen)
+        print("(entropy) Unlabel shape:",X_unlabel.shape, y_unlabel.shape)
+
+        # train logistic
+        clf = LogisticRegression(random_state=0, max_iter=100).fit(X_train, y_train)
+        
+        # predict entropy
+        # y_pred = clf.predict(X_unlabel)
+        probs = clf.predict_proba(X_unlabel)
+        entp = probs * np.log(probs)
+        entropy = -1*np.sum(entp, axis = 1)
+        unlabel_df["entropy"] = entropy
+        
+        if self.style == "maxentropy":
+            unlabel_df = unlabel_df.sort_values("entropy", ascending = False)
+            to_add_df = unlabel_df.head(n) # selected n samples
+        elif self.style == "maxentropy_dist":
+            ## + distance function
+            avg_dist_list = []
+            for x in X_unlabel:
+                q = x - X_train
+                dist = np.linalg.norm(q, axis = 1)
+                avg_dist = np.mean(dist)
+                avg_dist_list.append(avg_dist)
+            unlabel_df["avg_dist"] = avg_dist_list
+            unlabel_df = unlabel_df.sort_values("entropy", ascending = False)
+            to_add_df = unlabel_df.head(n*10) # selected n samples
+            to_add_df = to_add_df.sort_values("avg_dist", ascending = False).head(n)
+
+        # remove outlier, select top n
+        # N = unlabel_df.shape[0]
+        # subN = int(N*(1-outlier))
+        # to_add_df = unlabel_df.tail(subN).head(n) # selected n samples
+        unlabel_df = unlabel_df.drop(to_add_df.index)
+
+        print("=============END ENTROPY===========")
         return to_add_df, unlabel_df
 
     def evaluate(self, model, val_df, size, batch_size, workers, load_only, **kwargs):

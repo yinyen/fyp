@@ -2,19 +2,19 @@
 # Continue restoration config
 cn_config:
   current_step: 0
-  main_path: ./torch_ao/ui
-  previous_step_path: ./torch_ao/ui/step_001
+  main_path: ./torch_ao/maxentropy_dist
+  previous_step_path: ./torch_ao/maxentropy_dist/step_001
 
 # Active Learning Config
 al_config:
   train_name: active_learning
-  style: ui # random
+  style: maxentropy_dist # random, ui, maxentropy, maxentropy_dist
   random_state: 123
   override_reset_model: 1
 
   # root_dir: "AL"
   root_dir: "./torch_ao"
-  main_dir: "ui" # dual_al_random
+  main_dir: "maxentropy_dist" # dual_al_random
   val_n_sample: 1000
   test_n_sample: 3000
   max_steps: 15
