@@ -4,13 +4,13 @@
 # CUDA_VISIBLE_DEVICES=0 python train_dual_active.py --config yaml_config/al_ui.yaml
 
 # Random
-# CUDA_VISIBLE_DEVICES=0 python train_dual_active.py --config yaml_config/al_random.yaml
+# CUDA_VISIBLE_DEVICES=1 python train_dual_active.py --config yaml_config/al_random.yaml
 
 # MaxEntropy
 # CUDA_VISIBLE_DEVICES=0 python train_dual_active.py --config yaml_config/al_maxentropy.yaml
 
 # MaxEntropy + Distance
-# CUDA_VISIBLE_DEVICES=0 python train_dual_active.py --config yaml_config/al_maxentropy_dist.yaml
+CUDA_VISIBLE_DEVICES=1 python train_dual_active.py --config yaml_config/al_maxentropy_dist.yaml
 
 
 

@@ -20,8 +20,8 @@ al_config:
   max_steps: 15
 
   # active learning parameters
-  m: 100 # 200, start 200,100
-  n: 100  # 100, step sampling
+  m: 50 # 200, start 200,100
+  n: 20  # 100, step sampling
   outlier: 0.01
 
 # Model Config:

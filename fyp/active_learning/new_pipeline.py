@@ -175,6 +175,7 @@ class ActiveLearning():
             model = None
             torch.cuda.empty_cache()
 
+        train_num_samples = label_df.shape[0]
         if current_step == 0:
             model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=None, model_config = self.model_config)
         else:
@@ -193,6 +194,7 @@ class ActiveLearning():
         self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
         self.dump_centroid(current_step_dir, centroid) # dump centroid
 
+        result_df["train_num_samples"] = train_num_samples
         result_df["time"] = (t1-t0)/60
         self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
         self.dump_step_result2(current_step_dir, result_df2) # dump evaluation metrics
@@ -233,6 +235,7 @@ class ActiveLearning():
             model = None
             torch.cuda.empty_cache()
 
+        train_num_samples = label_df.shape[0]
         if current_step == 0:
             model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=None, model_config = self.model_config)
         else:
@@ -251,6 +254,7 @@ class ActiveLearning():
         self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
         # self.dump_centroid(current_step_dir, centroid) # dump centroid
         result_df["time"] = (t1-t0)/60
+        result_df["train_num_samples"] = train_num_samples
         self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
         self.dump_step_result2(current_step_dir, result_df2) # dump evaluation metrics
         self.dump_time(current_step_dir, t0, t1)
@@ -292,6 +296,7 @@ class ActiveLearning():
             model = None
             torch.cuda.empty_cache()
 
+        train_num_samples = label_df.shape[0]
         if current_step == 0:
             model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=None, model_config = self.model_config)
         else:
@@ -309,6 +314,7 @@ class ActiveLearning():
         # phase 5: Dump output
         self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
         # self.dump_centroid(current_step_dir, centroid) # dump centroid
+        result_df["train_num_samples"] = train_num_samples
         result_df["time"] = (t1-t0)/60
         self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
         self.dump_step_result2(current_step_dir, result_df2) # dump evaluation metrics
@@ -419,7 +425,7 @@ class ActiveLearning():
                 avg_dist_list.append(avg_dist)
             unlabel_df["avg_dist"] = avg_dist_list
             unlabel_df = unlabel_df.sort_values("entropy", ascending = False)
-            to_add_df = unlabel_df.head(n*10) # selected n samples
+            to_add_df = unlabel_df.head(100) # selected n samples
             to_add_df = to_add_df.sort_values("avg_dist", ascending = False).head(n)
 
         # remove outlier, select top n

@@ -17,4 +17,4 @@ fyp/Dual_AL/*
 new_all_train_400.zip
 fyp/torch_DualAL/*
 fyp/torch_models/*
-fyp/torch_ao/*
+fyp/torch_ao*/*
