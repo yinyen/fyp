@@ -11,3 +11,6 @@ opencv-python
 jupyterlab
 PyYAML
 
+
+# sudo apt update && sudo apt install -y libsm6 libxext6
+# sudo apt-get install -y libxrender-dev
