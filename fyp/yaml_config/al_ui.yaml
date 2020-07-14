@@ -1,9 +1,9 @@
 
 # Continue restoration config
 cn_config:
-  current_step: 0
+  current_step: 9
   main_path: ./torch_ao/ui
-  previous_step_path: ./torch_ao/ui/step_001
+  previous_step_path: ./torch_ao/ui/step_008
 
 # Active Learning Config
 al_config:

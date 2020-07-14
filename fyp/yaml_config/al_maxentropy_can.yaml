@@ -2,22 +2,21 @@
 # Continue restoration config
 cn_config:
   current_step: 0
-  main_path: ./torch_ao/demo
-  previous_step_path: ./torch_ao/demo/step_001
+  main_path: ./torch_ao/maxentropy_can
+  previous_step_path: ./torch_ao/maxentropy_can/step_001
 
 # Active Learning Config
 al_config:
   train_name: active_learning
-  style: maxentropy_ui # random
+  style: maxentropy_can # random, ui, maxentropy, maxentropy_dist
   random_state: 123
-  demo: 1
   override_reset_model: 1
 
   # root_dir: "AL"
   root_dir: "./torch_ao"
-  main_dir: "demo" # dual_al_random
-  val_n_sample: 100
-  test_n_sample: 300
+  main_dir: "maxentropy_can" # dual_al_random
+  val_n_sample: 1000
+  test_n_sample: 3000
   max_steps: 15
 
   # active learning parameters
@@ -47,7 +46,7 @@ model_config:
   reweight_sample_factor: 2
   single_mode: 1
 
-  epochs: 2
+  epochs: 60
   loss_type: smoothl1loss
   model_type: single_resnext50
   model_kwargs:
@@ -55,7 +54,7 @@ model_config:
     num_classes: 1
     use_init: kaiming
     limit_two: 1
-  qk_patience: 1 #10
+  qk_patience: 15 #10
 
   optimizer_type: AdamW
   opt_kwargs:
@@ -64,7 +63,7 @@ model_config:
 
   scheduler_type: CosineAnnealingLR
   scheduler_kwargs:
-    T_max: 2
+    T_max: 60
     eta_min: 0.0002
 
 

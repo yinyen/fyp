@@ -6,6 +6,7 @@ import joblib
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
+from scipy.spatial import distance
 
 import torch
 import torch.backends.cudnn as cudnn
@@ -120,7 +121,7 @@ class ActiveLearning():
             model.load_state_dict(torch.load(previous_model_path))
             centroid = joblib.load(f'{previous_step_path}/centroid.pkl')
             packet = (label_df, unlabel_df, model, previous_model_path, centroid)
-        elif style == "random" or style == "maxentropy" or style == "maxentropy_dist":
+        elif style in ["random", "maxentropy", "maxentropy_dist", "maxentropy_ui", "maxentropy_can"]:
             label_df = pd.read_csv(f"{previous_step_path}/label_df.csv")
             unlabel_df = pd.read_csv(f"{previous_step_path}/unlabel_df.csv")
             previous_model_path = f'{previous_step_path}/{train_name}/best_qk_model.pth'
@@ -139,7 +140,7 @@ class ActiveLearning():
                 packet = self.ui_active_learning(current_step, packet)
             elif self.al_config.get("style") == "random":
                 packet = self.random_active_learning(current_step, packet, self.al_config.get("random_state"))
-            elif self.al_config.get("style") == "maxentropy" or self.al_config.get("style") == "maxentropy_dist":
+            elif self.al_config.get("style") in ["maxentropy","maxentropy_dist","maxentropy_ui", "maxentropy_can"]:
                 packet = self.maxentropy_active_learning(current_step, packet)
 
             current_step += 1 
@@ -175,7 +176,8 @@ class ActiveLearning():
             model = None
             torch.cuda.empty_cache()
 
-        train_num_samples = label_df.shape[0]
+        label_num_samples = label_df.shape[0]
+        unlabel_num_samples = unlabel_df.shape[0]
         if current_step == 0:
             model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=None, model_config = self.model_config)
         else:
@@ -194,7 +196,8 @@ class ActiveLearning():
         self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
         self.dump_centroid(current_step_dir, centroid) # dump centroid
 
-        result_df["train_num_samples"] = train_num_samples
+        result_df["label_num_samples"] = label_num_samples
+        result_df["unlabel_num_samples"] = unlabel_num_samples
         result_df["time"] = (t1-t0)/60
         self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
         self.dump_step_result2(current_step_dir, result_df2) # dump evaluation metrics
@@ -235,7 +238,8 @@ class ActiveLearning():
             model = None
             torch.cuda.empty_cache()
 
-        train_num_samples = label_df.shape[0]
+        label_num_samples = label_df.shape[0]
+        unlabel_num_samples = unlabel_df.shape[0]
         if current_step == 0:
             model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=None, model_config = self.model_config)
         else:
@@ -254,7 +258,8 @@ class ActiveLearning():
         self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
         # self.dump_centroid(current_step_dir, centroid) # dump centroid
         result_df["time"] = (t1-t0)/60
-        result_df["train_num_samples"] = train_num_samples
+        result_df["label_num_samples"] = label_num_samples
+        result_df["unlabel_num_samples"] = unlabel_num_samples
         self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
         self.dump_step_result2(current_step_dir, result_df2) # dump evaluation metrics
         self.dump_time(current_step_dir, t0, t1)
@@ -296,7 +301,8 @@ class ActiveLearning():
             model = None
             torch.cuda.empty_cache()
 
-        train_num_samples = label_df.shape[0]
+        label_num_samples = label_df.shape[0]
+        unlabel_num_samples = unlabel_df.shape[0]
         if current_step == 0:
             model, previous_model_path = self.train(current_step_dir=current_step_dir, label_df=label_df, val_df=val_df, model=model, previous_model_path=None, model_config = self.model_config)
         else:
@@ -314,7 +320,8 @@ class ActiveLearning():
         # phase 5: Dump output
         self.dump_df(current_step_dir, label_df, to_add_df, unlabel_df, val_df) # dump samples
         # self.dump_centroid(current_step_dir, centroid) # dump centroid
-        result_df["train_num_samples"] = train_num_samples
+        result_df["label_num_samples"] = label_num_samples
+        result_df["unlabel_num_samples"] = unlabel_num_samples
         result_df["time"] = (t1-t0)/60
         self.dump_step_result(current_step_dir, result_df) # dump evaluation metrics
         self.dump_step_result2(current_step_dir, result_df2) # dump evaluation metrics
@@ -400,7 +407,7 @@ class ActiveLearning():
         X_train, y_train = extract_xy(model = model, data_gen = train_gen)
         print("(entropy) Label/Train shape:", X_train.shape, y_train.shape)
         X_unlabel, y_unlabel = extract_xy(model = model, data_gen = unlabel_gen)
-        print("(entropy) Unlabel shape:",X_unlabel.shape, y_unlabel.shape)
+        print("(entropy) Unlabel shape:", X_unlabel.shape, y_unlabel.shape)
 
         # train logistic
         clf = LogisticRegression(random_state=0, max_iter=100).fit(X_train, y_train)
@@ -415,6 +422,7 @@ class ActiveLearning():
         if self.style == "maxentropy":
             unlabel_df = unlabel_df.sort_values("entropy", ascending = False)
             to_add_df = unlabel_df.head(n) # selected n samples
+            
         elif self.style == "maxentropy_dist":
             ## + distance function
             avg_dist_list = []
@@ -422,6 +430,31 @@ class ActiveLearning():
                 q = x - X_train
                 dist = np.linalg.norm(q, axis = 1)
                 avg_dist = np.mean(dist)
+                avg_dist_list.append(avg_dist)
+            unlabel_df["avg_dist"] = avg_dist_list
+            unlabel_df = unlabel_df.sort_values("entropy", ascending = False)
+            to_add_df = unlabel_df.head(100) # selected n samples
+            to_add_df = to_add_df.sort_values("avg_dist", ascending = False).head(n)
+
+        elif self.style == "maxentropy_ui":
+            ## + distance function
+            avg_dist_list = []
+            for x in X_unlabel:
+                q = x - X_train
+                dist = np.sqrt(np.linalg.norm(q, axis = 1))
+                avg_dist = np.mean(dist)
+                avg_dist_list.append(avg_dist)
+            unlabel_df["avg_dist"] = avg_dist_list
+            unlabel_df = unlabel_df.sort_values("entropy", ascending = False)
+            to_add_df = unlabel_df.head(100) # selected n samples
+            to_add_df = to_add_df.sort_values("avg_dist", ascending = False).head(n)
+        
+        elif self.style == "maxentropy_can":
+            ## + distance function
+            avg_dist_list = []
+            for x in X_unlabel:
+                cd_list = [distance.canberra(x, y) for y in X_train]   
+                avg_dist = np.mean(cd_list)
                 avg_dist_list.append(avg_dist)
             unlabel_df["avg_dist"] = avg_dist_list
             unlabel_df = unlabel_df.sort_values("entropy", ascending = False)
