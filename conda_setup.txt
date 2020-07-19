@@ -6,3 +6,6 @@ conda create --name tf_gpu tensorflow-gpu
 
 conda install pandas numpy scikit-learn 
 pip install Pillow
+
+
+https://www.dropbox.com/s/x3n4yruvaa0zczj/new_all_train_400.zip?dl=1
